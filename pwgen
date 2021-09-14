@@ -1,0 +1,264 @@
+#!/usr/bin/env bash
+set -uo pipefail
+# Valeurs par défaut
+DEFAULT_LENGTH=64
+SHAPE='random'
+# Rapport h/l de la fonte du terminal. Environ...
+FONT_SIZE_RATIO='15/7'
+HAVEGED="/usr/sbin/haveged"
+SHOW_DEFAULT_LENGTH='1'
+LOG_LEVEL="1"
+# classe de chars dans laquelle tailler
+# et parce que sous MacOS la classe [:graph:] renvoie des bêtises
+STRENGTH_ALNUM='a-zA-Z0-9'
+STRENGTH_GRAPH='a-zA-Z0-9\41\42\43\44\45\46\47\50\51\52\53\54\55\56\57\72\73\74\75\76\77\100\133\134\135\136\137\140\173\174\175\176'
+strength="$STRENGTH_ALNUM"
+rng='openssl'
+
+SHAPES=('square' 'circle' 'triangle' 'cross')
+declare -A E_CODES
+E_CODES['shape']=1
+E_CODES['preflight']=2
+declare -A LOG_LEVELS
+LOG_LEVELS['DBG']=3
+LOG_LEVELS['INF']=2
+LOG_LEVELS['WRN']=1
+LOG_LEVELS['ERR']=0
+declare -A SHORT_LOG_LEVELS
+for s in "${!LOG_LEVELS[@]}" ; do
+	SHORT_LOG_LEVELS[${s:0:1}]="$s"
+done
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function disp() {
+	local level="${1^^}"
+	local msg="${2:-}"
+	if [ "${LOG_LEVELS[${SHORT_LOG_LEVELS[$level]}]}" -gt "$LOG_LEVEL" ] ; then
+		return
+	fi
+	local pref;pref="$(date "+%Y-%m-%d %H:%M:%S")"
+	printf '[%s][%s] %s\n' "$pref" "${SHORT_LOG_LEVELS[$level]}" "$msg" >&2
+}
+function preflight_check() {
+	if ! type -p bc >/dev/null ; then
+		disp e 'bc(1) not found' ; return 1
+	fi
+	if ! [[ $length =~ ^[0-9]+$ ]] ; then
+		disp e "'$length' is not int" ; return 1
+	fi
+	if [ "$length" -le 0 ] ; then
+		echo 'Size does matter'
+		return 1
+	fi
+	case "$(uname -s)" in
+		FreeBSD|Darwin)	tr='gtr';date='gdate';;
+		*)				tr='tr';date='date';;
+	esac
+	case $rng in
+		haveged)
+			if ! [ -e "${HAVEGED}" ] ; then disp e 'haveged(8) not found' ; return 1 ; else disp d 'haveged(8) is present' ; fi
+			if ! "${HAVEGED}" -n 1 -f /dev/null 2>/dev/null ; then disp e "Can't use haveged(8)" ; return 1 ; else disp d 'haveged(8) is usable' ; fi
+		;;
+		openssl)	if ! type -p $rng >/dev/null ; then disp e 'openssl(1) not found (??)' ; return 1 ; else disp d 'openssl(1) found' ; fi;;
+		random)		if ! [ -c /dev/random ] ; then disp e '/dev/random not found or not a character device (??)' ; return 1 ; else disp d '/dev/random is usable'; fi;;
+		*)			disp e "Unknown rng engine '$rng'" ; return 1;;
+	esac
+	if ! echo "${SHAPES[@]}" | grep -w -q "$SHAPE" ; then
+		disp e "Unknown shape '$SHAPE'"
+		return 1
+	fi
+}
+function stopwatch {	# Provide a stopwatch
+	local opt; opt="$1"
+	local date
+	case "$(uname -s)" in
+		Linux)		date="date";;
+		FreeBSD)	date="gdate";;
+	esac
+	if ! $date --version | grep -q GNU ; then
+		return 1
+	fi
+	local duration=''
+	case "$opt" in
+		start)	stopwatch_start="$($date +%s%N)";;
+		stop)
+			if [ -z "$stopwatch_start" ] ; then
+				return 2
+			fi
+			duration=$(( ( $($date +%s%N) - stopwatch_start ) / 1000000 ));;
+	esac
+	if [ -n "${duration}" ] ; then
+		unset stopwatch_start
+		echo "$duration"
+	fi
+}
+function generate() {
+	local rng="$1"
+	local l="$2"
+	local h="${3:-$l}"
+	disp i "Calling rng: $rng"
+	#( eval generate_"$rng" "$l" "$h" | $tr -cd "[:$strength:]" | fold -w "${l}" ) | head -"${h}"
+	( eval generate_"$rng" "$l" "$h" | $tr -cd "$strength" | fold -w "${l}" ) | head -"${h}"
+}
+function generate_random() {
+	cat /dev/random
+}
+function generate_openssl() {
+	local l="$1"
+	local h="${2:-$l}"
+	openssl rand $((10*l*h))
+}
+function generate_haveged() {
+	local l="$1"
+	local h="${2:-$l}"
+	"${HAVEGED}" -n $((10*l*h)) -f - 2>/dev/null
+}
+function work() {
+	local rng="$1"
+	local shape="$2"
+	local l="$3"
+	local h="$4"
+	local spaces='                                                                                                      '
+	case $shape in
+		square)		work_square "$rng" "$l" "$h";;
+		triangle)	work_triangle "$rng" "$l" "$h";;
+		circle)		work_circle "$rng" "$l" "$h";;
+		cross)		work_cross "$rng" "$l" "$h";;
+		*)			disp e "Unknown shape '$shape'" ; exit "${E_CODES['shape']}";;
+	esac
+	return 0
+}
+function work_cross() {
+	local rng="$1"
+	local l="$2"
+	local h="$3"
+	local y=1
+	local spaces='                                                                                                      '
+	stopwatch start
+	generate "$rng" "$l" "$h" | while read -r p ; do
+		if [ "$y" -le $((h/3)) ] || [ "$y" -gt $(( 2*h/3 )) ] ; then
+			x="$(( l/3 ))"
+			[ -n "$SHOW_DEFAULT_LENGTH" ] && printf '%3d: ' "$x"
+			echo -n "${spaces:0:$x}"
+			echo "${p:0:$((l/3))}"
+		elif [ "$y" -le $((2*h/3)) ] ; then
+			[ -n "$SHOW_DEFAULT_LENGTH" ] && printf '%3d: ' "$l"
+			echo "${p}"
+		fi
+		((y++))
+	done
+	disp d "Time taken: $(stopwatch stop)ms"
+}
+function work_square() {
+	local rng="$1"
+	local l="$2"
+	local h="$3"
+	stopwatch start
+	generate "$rng" "$l" "$h" | while read -r p ; do
+		[ -n "$SHOW_DEFAULT_LENGTH" ] && printf '%3d: ' "$l"
+		echo "$p"
+	done
+	disp d "Time taken: $(stopwatch stop)ms"
+}
+function work_circle() {
+	local rng="$1"
+	local l="$2"
+	local h="$3"
+	local spaces='                                                                                                      '
+	y="$(echo "$h/2" | bc)"
+	stopwatch start
+	generate "$rng" "$l" "$h"	| while read -r p ; do
+		LC_ALL=C printf -v x '%.0f' "$(bc <<< "scale=2;$l*sqrt(1-($y/($h/2))^2)")"
+		[ -n "$SHOW_DEFAULT_LENGTH" ] && printf '%3d: ' "$x"
+		echo -n "${spaces:0:$(( (l-x)/2 ))}"
+		echo "${p:0:$x}"
+		((y--))
+	done
+	disp d "Time taken: $(stopwatch stop)ms"
+}
+function work_triangle() {
+	local rng="$1"
+	local l="$2"
+	local h="$3"
+	local spaces='                                                                                                      '
+	local x=1
+	stopwatch start
+	generate "$rng" "$l" "$h" | while read -r p ; do
+		[ -n "$SHOW_DEFAULT_LENGTH" ] && printf '%3d: ' "$x"
+		echo -n "${spaces:0:$((1+(l-x)/2))}"
+		echo "${p:0:$x}"
+		x=$((x+FONT_SIZE_RATIO))
+	done
+	disp d "Time taken: $(stopwatch stop)ms"
+}
+function usage() {
+	cat <<EOF
+
+/\ O Generate shaped random passwords + □
+
+$0 [ -e <rng engine> ] [ -l ] [ -a <shape> ] [ -d | -v | -q ] [ -s ] [ <password length> ] [ -<how many you want> ]
+$0 [ -e <rng engine> ] [ -l ] [ -a <shape> ] [ -d | -v | -q ] [ -s ] -f
+$0 -h
+
+-a  : shape to shape output in. square, triangle, circle, cross or random. Default is random
+-d  : debug. Show debug, info, warning and error log level
+-e  : rng engine: haveged(8), openssl(1) or (/dev/)random. Default is $rng. Speed: openssl >= random >> haveged
+-f  : full screen height : compute as many password as your terminal's lines, and calculate length so that shape is respected
+-q  : quiet. Show only errors log level and hide string length
+-s  : generated passwords will include special chars
+-v  : verbose. Show info, warning and error log level
+
+password length: (max) length of the generated passwords. Size vary according to the shape. Default is $DEFAULT_LENGTH
+
+Examples:
+
+# Random shape, 64 char max
+	$ pwgen
+
+# Same, but use haveged(8) as a random generator, if available
+	$ pwgen -e haveged
+
+# One password of 64 char length, with special chars
+	$ pwgen -a square -q -1 -s
+
+EOF
+}
+length=''; N_PASS='' ; FULL_HEIGHT=''
+while [ -n "${1:-}" ] ; do
+	case $1 in
+		-s)	strength="$STRENGTH_GRAPH";;
+		-e)	rng="$2"; shift;;
+		-f) FULL_HEIGHT='y';;
+		-v) LOG_LEVEL='2';;
+		-d)	LOG_LEVEL='3';;
+		-h)	usage;exit;;
+		-a)	SHAPE="$2";shift;;
+		-l)	SHOW_DEFAULT_LENGTH='y';;
+		-q)	LOG_LEVEL='0';SHOW_DEFAULT_LENGTH='';;
+		-*)	N_PASS=${1##-};;
+		*)	length="$1";;
+	esac
+	shift
+done
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+if [ -n "$FULL_HEIGHT" ] ; then
+	if [ -n "$N_PASS" ] || [ -n "$length" ] ; then
+		echo "Can't mix -f with -* and *"
+		exit ${E_CODES[preflight]}
+	else
+		N_PASS="$((LINES-2))"
+		length="$(echo "$N_PASS*$FONT_SIZE_RATIO" | bc )"
+	fi
+fi
+length=${length:=$DEFAULT_LENGTH}
+N_PASS=${N_PASS:=$(echo "$length/($FONT_SIZE_RATIO)" | bc)}
+if [ "$SHAPE" = "random" ] ; then
+	s=$( echo "$RANDOM % ${#SHAPES[*]}" | bc)
+	SHAPE=${SHAPES[$s]}
+fi
+if ! preflight_check ; then
+	echo 'Preflight check failed'
+	exit ${E_CODES['preflight']}
+fi
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+disp i "${length}x${N_PASS} < $rng @$SHAPE"
+work "$rng" "${SHAPE}" "$length" "$N_PASS"
