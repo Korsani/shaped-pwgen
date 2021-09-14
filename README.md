@@ -7,9 +7,10 @@ Generate a shaped bunch of passwords
 
 ## Pre-requisite
 
-- a working bash(1)
-- bc(1)
-- openssl(1)
+- a working ```bash(1)```
+- ```bc(1)```
+- ```openssl(1)```
+- eventually ```haveged(8)```
 
 ## Installation
 
