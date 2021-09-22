@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -uo pipefail
+export LC_ALL=C
 # Valeurs par défaut
 DEFAULT_LENGTH=64
 SHAPE='random'
@@ -10,9 +11,11 @@ SHOW_DEFAULT_LENGTH='1'
 LOG_LEVEL="1"
 # classe de chars dans laquelle tailler
 # et parce que sous MacOS la classe [:graph:] renvoie des bêtises
-STRENGTH_ALNUM='a-zA-Z0-9'
-STRENGTH_GRAPH='a-zA-Z0-9\41\42\43\44\45\46\47\50\51\52\53\54\55\56\57\72\73\74\75\76\77\100\133\134\135\136\137\140\173\174\175\176'
-strength="$STRENGTH_ALNUM"
+declare -A POOL_SIZE
+declare -A POOL
+POOL[ALNUM]='a-zA-Z0-9'
+POOL[GRAPH]='a-zA-Z0-9\41\42\43\44\45\46\47\50\51\52\53\54\55\56\57\72\73\74\75\76\77\100\133\134\135\136\137\140\173\174\175\176'
+strength='ALNUM'
 rng='openssl'
 
 SHAPES=('square' 'circle' 'triangle' 'cross')
@@ -66,6 +69,15 @@ function preflight_check() {
 		disp e "Unknown shape '$SHAPE'"
 		return 1
 	fi
+	for pool in "${!POOL[@]}" ; do
+		POOL_SIZE[$pool]="$($tr -cd "${POOL[$pool]}" < /dev/urandom | fold -w 1 | head -1000 | sort -u | wc -l | xargs)"
+	done
+	return 0
+}
+function pw_entropy() {
+	local length="$1"
+	local pool="$2"
+	echo "$length*l(${POOL_SIZE[$pool]})/l(2)" | bc -l
 }
 function stopwatch {	# Provide a stopwatch
 	local opt; opt="$1"
@@ -96,8 +108,7 @@ function generate() {
 	local l="$2"
 	local h="${3:-$l}"
 	disp i "Calling rng: $rng"
-	#( eval generate_"$rng" "$l" "$h" | $tr -cd "[:$strength:]" | fold -w "${l}" ) | head -"${h}"
-	( eval generate_"$rng" "$l" "$h" | $tr -cd "$strength" | fold -w "${l}" ) | head -"${h}"
+	( eval generate_"$rng" "$l" "$h" | $tr -cd "${POOL[$strength]}" | fold -w "${l}" ) | head -"${h}"
 }
 function generate_random() {
 	cat /dev/random
@@ -111,6 +122,14 @@ function generate_haveged() {
 	local l="$1"
 	local h="${2:-$l}"
 	"${HAVEGED}" -n $((10*l*h)) -f - 2>/dev/null
+}
+function print_pw() {
+	local p="$1"
+	local l="$2"
+	if [ -n "$SHOW_DEFAULT_LENGTH" ] ; then
+		printf '%5.1f %3d | ' "$(pw_entropy "$l" "$strength")" "$l"
+	fi
+	echo "${p}"
 }
 function work() {
 	local rng="$1"
@@ -137,12 +156,10 @@ function work_cross() {
 	generate "$rng" "$l" "$h" | while read -r p ; do
 		if [ "$y" -le $((h/3)) ] || [ "$y" -gt $(( 2*h/3 )) ] ; then
 			x="$(( l/3 ))"
-			[ -n "$SHOW_DEFAULT_LENGTH" ] && printf '%3d: ' "$x"
-			echo -n "${spaces:0:$x}"
-			echo "${p:0:$((l/3))}"
-		elif [ "$y" -le $((2*h/3)) ] ; then
-			[ -n "$SHOW_DEFAULT_LENGTH" ] && printf '%3d: ' "$l"
-			echo "${p}"
+			p="${spaces:0:$x}${p:0:$((l/3))}"
+			print_pw "$p" "$x"
+		else
+			print_pw "$p" "$l"
 		fi
 		((y++))
 	done
@@ -154,8 +171,7 @@ function work_square() {
 	local h="$3"
 	stopwatch start
 	generate "$rng" "$l" "$h" | while read -r p ; do
-		[ -n "$SHOW_DEFAULT_LENGTH" ] && printf '%3d: ' "$l"
-		echo "$p"
+		print_pw "$p" "$l"
 	done
 	disp d "Time taken: $(stopwatch stop)ms"
 }
@@ -167,10 +183,8 @@ function work_circle() {
 	y="$(echo "$h/2" | bc)"
 	stopwatch start
 	generate "$rng" "$l" "$h"	| while read -r p ; do
-		LC_ALL=C printf -v x '%.0f' "$(bc <<< "scale=2;$l*sqrt(1-($y/($h/2))^2)")"
-		[ -n "$SHOW_DEFAULT_LENGTH" ] && printf '%3d: ' "$x"
-		echo -n "${spaces:0:$(( (l-x)/2 ))}"
-		echo "${p:0:$x}"
+		printf -v x '%.0f' "$(bc <<< "scale=2;$l*sqrt(1-($y/($h/2))^2)")"
+		print_pw "${spaces:0:$(( (l-x)/2 ))}${p:0:$x}" "$x"
 		((y--))
 	done
 	disp d "Time taken: $(stopwatch stop)ms"
@@ -183,9 +197,8 @@ function work_triangle() {
 	local x=1
 	stopwatch start
 	generate "$rng" "$l" "$h" | while read -r p ; do
-		[ -n "$SHOW_DEFAULT_LENGTH" ] && printf '%3d: ' "$x"
-		echo -n "${spaces:0:$((1+(l-x)/2))}"
-		echo "${p:0:$x}"
+		#[ -n "$SHOW_DEFAULT_LENGTH" ] && printf '%3d: ' "$x"
+		print_pw "${spaces:0:$((1+(l-x)/2))}${p:0:$x}" "$x"
 		x=$((x+FONT_SIZE_RATIO))
 	done
 	disp d "Time taken: $(stopwatch stop)ms"
@@ -202,12 +215,13 @@ $0 -h
 -a  : shape to shape output in. square, triangle, circle, cross or random. Default is random
 -d  : debug. Show debug, info, warning and error log level
 -e  : rng engine: haveged(8), openssl(1) or (/dev/)random. Default is $rng. Speed: openssl >= random >> haveged
--f  : full screen height : compute as many password as your terminal's lines, and calculate length so that shape is respected
+-f  : full screen height: compute as many password as your terminal's lines, and calculate length so that shape is respected
 -q  : quiet. Show only errors log level and hide string length
 -s  : generated passwords will include special chars
 -v  : verbose. Show info, warning and error log level
-
 password length: (max) length of the generated passwords. Size vary according to the shape. Default is $DEFAULT_LENGTH
+
+Default is to output entropy of the password, length, then the password itself.
 
 Examples:
 
@@ -225,7 +239,7 @@ EOF
 length=''; N_PASS='' ; FULL_HEIGHT=''
 while [ -n "${1:-}" ] ; do
 	case $1 in
-		-s)	strength="$STRENGTH_GRAPH";;
+		-s)	strength='GRAPH';;
 		-e)	rng="$2"; shift;;
 		-f) FULL_HEIGHT='y';;
 		-v) LOG_LEVEL='2';;
