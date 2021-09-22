@@ -208,7 +208,7 @@ function usage() {
 
 /\ O Generate shaped random passwords + □
 
-$0 [ -e <rng engine> ] [ -l ] [ -a <shape> ] [ -d | -v | -q ] [ -s ] [ <password length> ] [ -<how many you want> ]
+$0 [ -e <rng engine> ] [ -l ] [ -a <shape> ] [ -d | -v | -q ] [ -s ] [ -<how many you want> ] [ <password length> ]
 $0 [ -e <rng engine> ] [ -l ] [ -a <shape> ] [ -d | -v | -q ] [ -s ] -f
 $0 -h
 
@@ -239,16 +239,18 @@ EOF
 length=''; N_PASS='' ; FULL_HEIGHT=''
 while getopts ":a:d:e:fhlqsv" opt ; do
 	case ${opt} in
-		s)	strength='GRAPH';;
+		a)	SHAPE="${OPTARG}";;
+		d)	LOG_LEVEL='3';;
 		e)	rng="${OPTARG}";;
 		f)	FULL_HEIGHT='y';;
-		v)	LOG_LEVEL='2';;
-		d)	LOG_LEVEL='3';;
 		h)	usage;exit;;
-		a)	SHAPE="${OPTARG}";;
 		l)	SHOW_DEFAULT_LENGTH='y';;
 		q)	LOG_LEVEL='0';SHOW_DEFAULT_LENGTH='';;
-		*)	N_PASS=${1##-};;
+		s)	strength='GRAPH';;
+		v)	LOG_LEVEL='2';;
+		# Ahum... given -12 as option, this will lead to this line beeing executed 2 times:
+		# one with OPTARG=1, then with OPTARG=2
+		*)	N_PASS=${N_PASS}${OPTARG};;
 	esac
 done
 shift $((OPTIND-1))
