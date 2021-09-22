@@ -259,7 +259,7 @@ if [ -n "$FULL_HEIGHT" ] ; then
 		echo "Can't mix -f with -* and *"
 		exit ${E_CODES[preflight]}
 	else
-		N_PASS="$((LINES-2))"
+		N_PASS="$(( $(tput lines)-2))"
 		length="$(echo "$N_PASS*$FONT_SIZE_RATIO" | bc )"
 	fi
 fi
