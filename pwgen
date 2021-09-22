@@ -237,22 +237,22 @@ Examples:
 EOF
 }
 length=''; N_PASS='' ; FULL_HEIGHT=''
-while [ -n "${1:-}" ] ; do
-	case $1 in
-		-s)	strength='GRAPH';;
-		-e)	rng="$2"; shift;;
-		-f) FULL_HEIGHT='y';;
-		-v) LOG_LEVEL='2';;
-		-d)	LOG_LEVEL='3';;
-		-h)	usage;exit;;
-		-a)	SHAPE="$2";shift;;
-		-l)	SHOW_DEFAULT_LENGTH='y';;
-		-q)	LOG_LEVEL='0';SHOW_DEFAULT_LENGTH='';;
-		-*)	N_PASS=${1##-};;
-		*)	length="$1";;
+while getopts ":a:d:e:fhlqsv" opt ; do
+	case ${opt} in
+		s)	strength='GRAPH';;
+		e)	rng="${OPTARG}";;
+		f)	FULL_HEIGHT='y';;
+		v)	LOG_LEVEL='2';;
+		d)	LOG_LEVEL='3';;
+		h)	usage;exit;;
+		a)	SHAPE="${OPTARG}";;
+		l)	SHOW_DEFAULT_LENGTH='y';;
+		q)	LOG_LEVEL='0';SHOW_DEFAULT_LENGTH='';;
+		*)	N_PASS=${1##-};;
 	esac
-	shift
 done
+shift $((OPTIND-1))
+length=${1:-}
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 if [ -n "$FULL_HEIGHT" ] ; then
 	if [ -n "$N_PASS" ] || [ -n "$length" ] ; then

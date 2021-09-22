@@ -21,40 +21,40 @@ Copy ```pwgen``` somewhere accessible by your ```$PATH```
 It's as simple as
 
     $ ./pwgen
-	  0:
-	 24:                     BotVRHw66MpRo5NoIM7Le4E5
-	 32:                 an8mnj3QCclLr7KclDLf5jq7Y0uhptvC
-	 38:              RyLa0peqebRn5fBIEVvyVOOqqr59zN7Es6O1TZ
-	 42:            RzW9Wd9sjiV2ztdCvHEGDa6Cjf4T9ycDzKIhUGY6ph
-	 47:         x8cBhV8E1jETMNLkWgRX5Gpwdon2WjDzPONtHPswZNGV6S3
-	 50:        MCXZLztmUwlbZZ9IabropMS5cFzwxcxnCub6YYumAo8YSSAGXY
-	 53:      di9c5uNFGEYzyj8UzBnJFlSxPaipttt9IjR40lP2tMRzLqhBxo7ny
-	 55:     KMQUtiPJBYm5l27tJi6QlQkgxXa47skC54SJwcaltu87duPGCs17QbV
-	 58:    OsFRiDo6xceq7XvXxaiNjHmN0prpCzNA367dgfv2JdaoqezAyuQWrViyNg
-	 60:   3aDVpLLlpQf40AbkOJRArgGhhAc1JO6bRuRnzJdV7mbXoqyhrl9EMdaBJCJd
-	 61:  jraiATWYGCbo8bvwrEQ65ZFN4fVxQoBgpz4nXhTpzxZXybeWTDak8q9blT8PE
-	 61:  zhyLhOWwEHmMw0sSdkpRtQr8uyrjDRc286GrcmKtWQbkYkizrbuYB2MgyV2bw
-	 63: Q9Wd1Bj8LPPfclhS7oV6B8E4CijX9UtCgBdc4Kux0MAW3NssIhKN6X2D4G4vJj2
-	 63: Id9yt1ptxDewe1kswYy8oNBY63j3cRq8bKh7aMibvw0ioAkDoFVMLNBo5b8BPIY
-	 64: V8ZqsLqAgS2Lo4lO2aPy7Ii4FjrfHggvR8hq1LZX5rwM0Wv5onzn9vkeAbUeBTZg
-	 64: NainJrbQrBYDTEijbH0bB4WN5Du1libFTMzpOvePFxgOFsVYdMsUOZ7VYiHzFi5k
-	 64: oBXlwhq9zZQNNK6fPIaGW4xPMKAfd295ggkzProx9yjCYMHb4PwG6ktIfpyj0WP7
-	 63: 3LC6zabdvlOPUFQhUgxs6Henn5PUt3xM01aMq1SNiKdzVFsWb9qKJ5NuluuPhzM
-	 63: h0Jbbqw0kxvFBNe9cmDgZmAbpyKNimGDOP5hJjwfzSpl1J4JJDzxYF7NHPPcpem
-	 61:  kTEid8NEuK7qG9thJZR3VZ1Cc1lAlED4bHLE0lfi8agq9xXHP6wxDbSaXixB1
-	 61:  34MzrPDVaUeyFV3Bt6tlJcF3pNXc2uIFWL8BnxAGCOpp21TzB2oDjAn54anQy
-	 60:   RGirNUjnR03h6B2RkOxZbMiGhir1GgW40PIuNzxiGtPf431gpxyTFfHqZpbM
-	 58:    5pUy0LP4y8OqJBhkMVt4ZkCtrJSYvMQsLiBBGq3LJWsrm5gmXPZxYv4JY1
-	 55:     nUIUMFvmUenm5OxER9QvzkU9HTs3wqwvA8DJ7bI2ieiVhtgmBfzpOn8
-	 53:      DrTZ6hfexPcYjZym1cS1TXwTRIVnzkShykwTSh6MVKihp0ninCnfb
-	 50:        lMZIY5MnOA1BwRZKTANaPYygic6Ccbogzc66mBSciixkN4XFzu
-	 47:         AMstewB8oMEm0psT9fyX4AfJEI16vvoTxGAwFE3xMbSevFo
-	 42:            vRAgih0SODdIZrXM4kuiXj8WDJTktsOdCEUCNm1DB6
-	 38:              3BY6zmL5w1ntYn33hAp2jf3eGQevuU4zLJ61JQ
-	 32:                 UWJzjZVrQ8kYedtAMYavwm9rb3LmkbBf
-	 24:                     KEnLR6l5GAOuGB5M50mvp3Gp
+	  0.0   0 |
+	142.9  24 |                     B0qn6LTwUSslyz1HupLxebLn
+	190.5  32 |                 ISn0uS8C6NZpM4lfygsKw2cAlfgDjToA
+	226.3  38 |              TPQcQ1OJXvWVQEYX3EM8FQrKFdg4auzTI63qz2
+	250.1  42 |            ZXr03IP1nKhQPTjJbxRFeJ6xPUTypF84Ds1IEBdtWw
+	279.8  47 |         GFwsGuyfJmeWLR5ouKsIU9KJ5p2gAOruIPg8wQnKKC8u8g7
+	297.7  50 |        R83W3uS23SmbKvqoukxpMVKTQETAOAxFJmoms9R3xBO49W3nj4
+	315.6  53 |      hFD5weLSdXEVeVsLUagT85thO47xkz5V3Z6i1Kq7FUa28KF3ieLtx
+	327.5  55 |     7Y86ht4btXP9yFEh3623JMxq9HGiwDeBTBaQIWbSoIeNa0o5t1hsJrk
+	345.3  58 |    iOMXZurxCLOfb5qVRI2KaUp5NSKuXFgY4uZnHoCC9OylhpUXO7jOlvY5Np
+	357.3  60 |   QEOhMES2MqeQXXkpdC3jQHNeBTS2WyMlW8HbpDhYoB8CIjOuyBTzcDLethRU
+	363.2  61 |  LCyJFYOmBW9vxe7mX7V4GESjLaUUuA1Zh7ARDrQRt0Qzmmj3K7Bcp13svR78F
+	363.2  61 |  BvM81BJJDwRcfG0uuTqkCYmbO1RcDt1zhHIMkd9pkNz1NsnDXBQgevDKdpyic
+	375.1  63 | 3byZUfDh9pdmmc6QEqRP3PWdvqQaVwrc3F9ABLvgUuvJs1q8UXKCqFeMc43gjuW
+	375.1  63 | FgvRbtxU4wLXEu292y2s0UlViJCSS8tyjm8id0EX8C28nwkEO8rC6zVLtXPGHp9
+	381.1  64 | mbmr1fLAkuymO1qPlEx52OAt1Fl5SqTImgqjq5xdRiWFJOCmKW4jOfjtwSuw7h9S
+	381.1  64 | WaiyFKxLKuSb7w3bLQdBajfEaN9ZBju9wMXZ5RscwfOO48uguJ0MNvL0R6fFfPrZ
+	381.1  64 | fpLeBXxyckL91FREIQaR1LYsQeAkQy9kzGU5eVwBvh2zjdfnwi5t7QHUHZxNKzY6
+	375.1  63 | cJ9hZQ5CamvdEK796Hsk8QbSoOSrBLDOrtj1ofEXLCggMYPXWUJ5njbUZNqNvCb
+	375.1  63 | mmQyv05Sco5081Q55HMuNPTeTvsnQsMe3lfLm6iS6sFb6yoxK6thCjE5jUvIaPp
+	363.2  61 |  W8VMHnMeQ5Ct5Ekes5poI64ZQBu3KOWKB94oDDOQ5HHrC1obfEHG5bI8TEw4F
+	363.2  61 |  Z8nTfaSBvQWGYnqy0KbAB9hh4vJPzVQqJgBbFXc3t8LgDQniFIs7IOI6y2hHM
+	357.3  60 |   GFfFKxeCv0kfsIWOxuhp9dOrLhVIBRZrE2FPMwlRod5kXTkAjC1F5eiJJPrk
+	345.3  58 |    jANRS0tnQrBpr4cU8qHhqLOSFqG5Zr8klbCcwESwkRBzPD5dBFG77VSC2J
+	327.5  55 |     QueIIGiGonXdBEGzGILfhqkvUgEjpqStw8UKaWJSgr23G8BHfLOyLtX
+	315.6  53 |      JaJybOLA5AjxWem7pfDw9szAGt74iuEe5Si3NozPH5Y5oxKDFBLIB
+	297.7  50 |        AFmOHFtX8VrwFcCDpjm5snKL0lohtpNMtkhaBe5q9WhpwcJedR
+	279.8  47 |         lj5mb2E65flGldjAyXXeG0VRxWrZmQ1fuPuOTTJ0OgNLWA4
+	250.1  42 |            is1EI1sSWrwjEu3QUb3FrlGdynHfzvOXOuO7IesrLE
+	226.3  38 |              Fs3K8SQiaDxFBlMGbkz4jsAzlynU54JPvBOrDM
+	190.5  32 |                 AWtW2Ri8wH3AiQLpCr4lTaGh1ws2RTwp
+	142.9  24 |                     t1vOeH8rPnCPQCTniUIIO77R
 
- This generate 64 char long password, randome shaped. Circle in this case, each line is prepended by the password length.
+ This generate 64 char long password, randome shaped. Circle in this case, each line is prepended by the entropy and password length.
 
 
 ## RNG source
