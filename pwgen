@@ -127,7 +127,7 @@ function print_pw() {
 	local p="$1"
 	local l="$2"
 	if [ -n "$SHOW_DEFAULT_LENGTH" ] ; then
-		printf '%5.1f %3d | ' "$(pw_entropy "$l" "$strength")" "$l"
+		printf '%5.1f %3d |  ' "$(pw_entropy "$l" "$strength")" "$l"
 	fi
 	echo "${p}"
 }
@@ -197,7 +197,6 @@ function work_triangle() {
 	local x=1
 	stopwatch start
 	generate "$rng" "$l" "$h" | while read -r p ; do
-		#[ -n "$SHOW_DEFAULT_LENGTH" ] && printf '%3d: ' "$x"
 		print_pw "${spaces:0:$((1+(l-x)/2))}${p:0:$x}" "$x"
 		x=$((x+FONT_SIZE_RATIO))
 	done
@@ -237,20 +236,22 @@ Examples:
 EOF
 }
 length=''; N_PASS='' ; FULL_HEIGHT=''
-while getopts ":a:d:e:fhlqsv" opt ; do
+while getopts ":a:de:fhlqsv" opt ; do
 	case ${opt} in
+		# Ahum... given -12, getopts will consider as -1 and -2, that are not defined, thus leading to opt=?
+		\?)	if [[ ${OPTARG:-} =~ [[:digit:]] ]] ; then
+				N_PASS=${N_PASS}${OPTARG}
+			fi
+			;;
 		a)	SHAPE="${OPTARG}";;
 		d)	LOG_LEVEL='3';;
 		e)	rng="${OPTARG}";;
 		f)	FULL_HEIGHT='y';;
-		h)	usage;exit;;
+		h)	usage; exit;;
 		l)	SHOW_DEFAULT_LENGTH='y';;
 		q)	LOG_LEVEL='0';SHOW_DEFAULT_LENGTH='';;
 		s)	strength='GRAPH';;
 		v)	LOG_LEVEL='2';;
-		# Ahum... given -12 as option, this will lead to this line beeing executed 2 times:
-		# one with OPTARG=1, then with OPTARG=2
-		*)	N_PASS=${N_PASS}${OPTARG};;
 	esac
 done
 shift $((OPTIND-1))
@@ -258,7 +259,7 @@ length=${1:-}
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 if [ -n "$FULL_HEIGHT" ] ; then
 	if [ -n "$N_PASS" ] || [ -n "$length" ] ; then
-		echo "Can't mix -f with -* and *"
+		echo "Can't mix -f with -* or *"
 		exit ${E_CODES[preflight]}
 	else
 		N_PASS="$(( $(tput lines)-2))"
