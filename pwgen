@@ -195,10 +195,14 @@ function work_triangle() {
 	local h="$3"
 	local spaces='                                                                                                      '
 	local x=1
+	local n=1
+	local d="$(echo "scale=2;$l/$h" | bc)"
+	disp i "Slope: $d"
 	stopwatch start
 	generate "$rng" "$l" "$h" | while read -r p ; do
+		x=$(printf '%.0f' "$(echo "$d*$n"| bc)")
 		print_pw "${spaces:0:$((1+(l-x)/2))}${p:0:$x}" "$x"
-		x=$((x+FONT_SIZE_RATIO))
+		((n++))
 	done
 	disp d "Time taken: $(stopwatch stop)ms"
 }
