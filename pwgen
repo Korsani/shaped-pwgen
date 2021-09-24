@@ -52,6 +52,7 @@ function preflight_check() {
 		echo 'Size does matter'
 		return 1
 	fi
+	# On FreeBSD and MacOS, find GNU tr(1) and date(1)
 	case "$(uname -s)" in
 		FreeBSD|Darwin)	tr='gtr';date='gdate';;
 		*)				tr='tr';date='date';;
@@ -69,17 +70,23 @@ function preflight_check() {
 		disp e "Unknown shape '$SHAPE'"
 		return 1
 	fi
+	# Calculate the pool size of each set of unique character
+	# https://www.omnicalculator.com/other/password-entropy#what-is-password-entropy
+	# Take a reasonable amount of random data, "filter" them through the pool, then count what outs
 	for pool in "${!POOL[@]}" ; do
 		POOL_SIZE[$pool]="$($tr -cd "${POOL[$pool]}" < /dev/urandom | fold -w 1 | head -1000 | sort -u | wc -l | xargs)"
 	done
 	return 0
 }
+# Calculate the password entropy
+# https://www.omnicalculator.com/other/password-entropy#password-entropy-formula
 function pw_entropy() {
 	local length="$1"
 	local pool="$2"
-	echo "$length*l(${POOL_SIZE[$pool]})/l(2)" | bc -l
+	bc -l <<< "$length*l(${POOL_SIZE[$pool]})/l(2)"
 }
-function stopwatch {	# Provide a stopwatch
+# Provide a stopwatch
+function stopwatch {
 	local opt; opt="$1"
 	local date
 	case "$(uname -s)" in
@@ -103,6 +110,7 @@ function stopwatch {	# Provide a stopwatch
 		echo "$duration"
 	fi
 }
+# Wrapper to the other rng functions
 function generate() {
 	local rng="$1"
 	local l="$2"
@@ -123,6 +131,7 @@ function generate_haveged() {
 	local h="${2:-$l}"
 	"${HAVEGED}" -n $((10*l*h)) -f - 2>/dev/null
 }
+# Display a password with some prefix
 function print_pw() {
 	local p="$1"
 	local l="$2"
@@ -131,12 +140,12 @@ function print_pw() {
 	fi
 	echo "${p}"
 }
+# Wrapper to the shapper functions
 function work() {
 	local rng="$1"
 	local shape="$2"
 	local l="$3"
 	local h="$4"
-	local spaces='                                                                                                      '
 	case $shape in
 		square)		work_square "$rng" "$l" "$h";;
 		triangle)	work_triangle "$rng" "$l" "$h";;
@@ -179,8 +188,8 @@ function work_circle() {
 	local rng="$1"
 	local l="$2"
 	local h="$3"
+	local y ; y="$(bc <<< "$h/2")"
 	local spaces ; spaces="$(head -c "$l" < /dev/zero | tr '\0' ' ')"
-	local y ; y="$(echo "$h/2" | bc)"
 	stopwatch start
 	generate "$rng" "$l" "$h"	| while read -r p ; do
 		printf -v x '%.0f' "$(bc <<< "scale=2;$l*sqrt(1-($y/($h/2))^2)")"
@@ -193,10 +202,10 @@ function work_triangle() {
 	local rng="$1"
 	local l="$2"
 	local h="$3"
-	# Generate a string full of spaces
-	local spaces ; spaces="$(head -c "$l" < /dev/zero | tr '\0' ' ')"
 	local x=1
 	local n=1
+	# Generate a string full of spaces
+	local spaces ; spaces="$(head -c "$l" < /dev/zero | tr '\0' ' ')"
 	stopwatch start
 	generate "$rng" "$l" "$h" | while read -r p ; do
 		x=$((n*l/h))
@@ -266,13 +275,13 @@ if [ -n "$FULL_HEIGHT" ] ; then
 		exit ${E_CODES[preflight]}
 	else
 		N_PASS="$(( $(tput lines)-2))"
-		length="$(echo "$N_PASS*$FONT_SIZE_RATIO" | bc )"
+		length="$( bc <<< "$N_PASS*$FONT_SIZE_RATIO" )"
 	fi
 fi
 length=${length:=$DEFAULT_LENGTH}
-N_PASS=${N_PASS:=$(echo "$length/($FONT_SIZE_RATIO)" | bc)}
+N_PASS=${N_PASS:=$( bc <<< "$length/($FONT_SIZE_RATIO)" )}
 if [ "$SHAPE" = "random" ] ; then
-	s=$( echo "$RANDOM % ${#SHAPES[*]}" | bc)
+	s=$( bc <<< "$RANDOM % ${#SHAPES[*]}" )
 	SHAPE=${SHAPES[$s]}
 fi
 if ! preflight_check ; then
