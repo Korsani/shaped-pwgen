@@ -81,7 +81,7 @@ You can specify lengthi, number, and more secure passwords:
 
 	$ ./pwgen -a circle 42 -s		# a circle shaped of 42 char long secured passwords
 
-If image is provided by ```-i```, ```pwgen(1)``` will shaped passwords accordingly:
+If image is provided by ```-i```, ```pwgen(1)``` will shaped passwords accordingly (provided ImageMagick is installed):
 
 ```
 ·0·> ./pwgen -i cthulhu.png -q
@@ -133,4 +133,5 @@ If image is provided by ```-i```, ```pwgen(1)``` will shaped passwords according
 
 - ```bash(1)```, ```bc(1)```, ```tr(1)```
 - ```shellcheck(1)```
+- [ImageMagick](https://imagemagick.org/script/index.php)
 - Tested on GNU/Linux, Mac OSX, FreeBSD
