@@ -81,7 +81,6 @@ function preflight_check() {
 	return 0
 }
 # Calculate the password entropy
-# https://www.omnicalculator.com/other/password-entropy#password-entropy-formula
 function pw_entropy() {
 	local LENGTH="$1"
 	local pool="$2"
@@ -264,7 +263,7 @@ $0 -h
 -v  : verbose. Show info, warning and error log level
 password length: (max) length of the generated passwords. Number of passwords vary accordingly to the shape. Default is $DEFAULT_LENGTH
 
-Default is to output entropy of the password, LENGTH, then the password itself.
+Default is to output entropy of the password (in bits), length, then the password itself.
 
 Examples:
 
@@ -274,7 +273,7 @@ Examples:
 # Same, but use haveged(8) as a random generator, if available
 	$ pwgen -e haveged
 
-# One password of 64 char LENGTH, with special chars
+# One password of 64 char length, with special chars
 	$ pwgen -a square -q -1 -s
 
 EOF
@@ -313,14 +312,14 @@ if [ -n "$FULL_HEIGHT" ] ; then
 		N_PASS="$(( $(tput lines)-2))"
 		LENGTH=$( bc <<< "$N_PASS*$FONT_SIZE_RATIO" )
 	fi
-# Neither pass LENGTH nor number of pass are given
+# Neither pass length nor number of pass are given
 elif [ -z "$LENGTH" ] && [ -z "$N_PASS" ] ; then
 	LENGTH=${DEFAULT_LENGTH}
 	N_PASS=$( bc <<< "$LENGTH/($FONT_SIZE_RATIO)" )
-# Pass LENGTH is given, calculate number of pass so that it's well shaped
+# Pass length is given, calculate number of pass so that it's well shaped
 elif [ -n "$LENGTH" ] && [ -z "$N_PASS" ] ; then
 	N_PASS=$( bc <<< "$LENGTH/($FONT_SIZE_RATIO)" )
-# Number of pass is given, LENGTH is default LENGTH
+# Number of pass is given, length is default length
 elif [ -n "$N_PASS" ] ; then
 	LENGTH=${DEFAULT_LENGTH}
 else
