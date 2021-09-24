@@ -343,13 +343,18 @@ disp i "${LENGTH}x${N_PASS} < $RNG"
 if [ -z "${IMAGE:-}" ] ; then
 	disp i "Shape: $SHAPE"
 	work "$RNG" "${SHAPE}" "$LENGTH" "$N_PASS"
-elif [ -r "$IMAGE" ] ; then
-	disp i "Converting $IMAGE to xpm"
-	xpm="$(mktemp).xpm"
-	convert "${IMAGE}" -scale "${LENGTH}!x${N_PASS}!" -monochrome "$xpm"
-	work "$RNG" "$xpm" "$LENGTH" "$N_PASS"
-	rm -f "$xpm"
 else
-	disp e "Unreadable input file $IMAGE"
-	exit ${E_CODES[preflight]}
+	if ! type -p convert >/dev/null ; then
+		disp e "convert(1) (of ImageMagick) not found"
+		exit ${E_CODES[preflight]}
+	elif [ -r "$IMAGE" ] ; then
+		disp i "Converting $IMAGE to xpm"
+		xpm="$(mktemp).xpm"
+		convert "${IMAGE}" -scale "${LENGTH}!x${N_PASS}!" -monochrome "$xpm"
+		work "$RNG" "$xpm" "$LENGTH" "$N_PASS"
+		rm -f "$xpm"
+	else
+		disp e "Unreadable file $IMAGE"
+		exit ${E_CODES[preflight]}
+	fi
 fi
