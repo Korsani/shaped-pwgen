@@ -88,11 +88,6 @@ function pw_entropy() {
 # Provide a stopwatch
 function stopwatch {
 	local opt; opt="$1"
-	local date
-	case "$(uname -s)" in
-		Linux)		date="date";;
-		FreeBSD)	date="gdate";;
-	esac
 	if ! $date --version | grep -q GNU ; then
 		return 1
 	fi
