@@ -8,6 +8,7 @@ FONT_SIZE_RATIO='15/7'
 HAVEGED="/usr/sbin/haveged"
 SHOW_DEFAULT_LENGTH='y'
 LOG_LEVEL="1"
+CACHE_DIR="$HOME/.cache/shaped-pwgen"
 # classe de chars dans laquelle tailler
 # et parce que sous MacOS la classe [:graph:] renvoie des bêtises
 declare -A POOL_SIZE
@@ -76,6 +77,7 @@ function preflight_check() {
 	for pool in "${!POOL[@]}" ; do
 		POOL_SIZE[$pool]="$($tr -cd "${POOL[$pool]}" < /dev/urandom | fold -w 1 | head -1000 | sort -u | wc -l | xargs)"
 	done
+	mkdir -p "${CACHE_DIR}"
 	return 0
 }
 # Calculate the password entropy
@@ -343,11 +345,13 @@ else
 		disp e "convert(1) (of ImageMagick) not found"
 		exit ${E_CODES[preflight]}
 	elif [ -r "$IMAGE" ] ; then
-		disp i "Converting $IMAGE to xpm"
-		xpm="$(mktemp).xpm"
-		convert "${IMAGE}" -scale "${LENGTH}!x${N_PASS}!" -monochrome "$xpm"
+		md5=$(openssl md5 -r "${IMAGE}" | cut -d ' ' -f 1)
+		xpm="${CACHE_DIR}/${md5}-${LENGTH}x${N_PASS}.xpm"
+		if ! [ -s "$xpm" ] ; then
+			disp i "Converting $IMAGE to xpm"
+			convert "${IMAGE}" -scale "${LENGTH}!x${N_PASS}!" -monochrome "$xpm"
+		fi
 		work "$RNG" "$xpm" "$LENGTH" "$N_PASS"
-		rm -f "$xpm"
 	else
 		disp e "Unreadable file $IMAGE"
 		exit ${E_CODES[preflight]}
