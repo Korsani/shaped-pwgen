@@ -6,7 +6,6 @@ DEFAULT_LENGTH=64
 # Rapport h/l de la fonte du terminal. Environ...
 FONT_SIZE_RATIO='15/7'
 HAVEGED="/usr/sbin/haveged"
-SHOW_DEFAULT_LENGTH='y'
 LOG_LEVEL="1"
 CACHE_DIR="$HOME/.cache/shaped-pwgen"
 # classe de chars dans laquelle tailler
@@ -131,7 +130,7 @@ function generate_haveged() {
 function print_pw() {
 	local p="$1"
 	local l="$2"
-	if [ -n "$SHOW_DEFAULT_LENGTH" ] ; then
+	if [ -n "$SHOW_LINE_PREFIX" ] ; then
 		printf '%5.1f %3d |  ' "$(pw_entropy "$l" "$STRENGTH")" "$l"
 	fi
 	echo "${p}"
@@ -249,11 +248,11 @@ function usage() {
 
 /\ O Generate shaped random passwords + □
 
-$0 [ -e <rng engine> ] [ -a <shape> | -i <image file> ] [ -d | -v | -q ] [ -s ] [ -<how many you want> ] [ <password length> ]
-$0 [ -e <rng engine> ] [ -a <shape> | -i <image file> ] [ -d | -v | -q ] [ -s ] -f
+$0 [ -e <rng engine> ] [ -a <shape> | -i <image file> ] [ -l ] [ -d | -v | -q ] [ -s ] [ -<how many you want> ] [ <password length> ]
+$0 [ -e <rng engine> ] [ -a <shape> | -i <image file> ] [ -l ] [ -d | -v | -q ] [ -s ] -f
 $0 -h
 
--a  : shape to shape output in. square, triangle, circle, cross or random. Default is random
+-a  : shape to shape output in. square, triangle, circle, cross or random. Default is square
 -d  : debug. Show debug, info, warning and error log level
 -e  : rng engine: haveged(8), openssl(1) or (/dev/)random. Default is $RNG. Speed: openssl >= random >> haveged
 -f  : full screen height: compute as many password as your terminal's lines, and calculate length so that shape is respected
@@ -267,19 +266,22 @@ Default is to output entropy of the password (in bits), length, then the passwor
 
 Examples:
 
-# Random shape, 64 char max
+# Square shape, 64 char max
 	$ pwgen
 
 # Same, but use haveged(8) as a random generator, if available
 	$ pwgen -e haveged
 
 # One password of 64 char length, with special chars
-	$ pwgen -a square -q -1 -s
+	$ pwgen -a circle -q -1 -s
+
+# A cross full of passwords, 22 char length max, and showing entropy and password length on each line
+	$ pwgen -a cross -l 22
 
 EOF
 }
-N_PASS='' ; FULL_HEIGHT='' ; IMAGE='' ; SHAPE=''
-while getopts ":a:de:fhi:qsv" opt ; do
+N_PASS='' ; FULL_HEIGHT='' ; IMAGE='' ; SHAPE='' ; SHOW_LINE_PREFIX=''
+while getopts ":a:de:fhi:lqsv" opt ; do
 	case ${opt} in
 		# Ahum... given -12, getopts will consider as -1 and -2, that are not defined, thus leading to opt=?
 		\?)	if [[ ${OPTARG:-} =~ [[:digit:]] ]] ; then
@@ -291,8 +293,9 @@ while getopts ":a:de:fhi:qsv" opt ; do
 		e)	RNG="${OPTARG}";;
 		f)	FULL_HEIGHT='y';;
 		h)	usage; exit;;
-		i)	IMAGE="${OPTARG}" ; SHOW_DEFAULT_LENGTH='';;
-		q)	LOG_LEVEL='0';SHOW_DEFAULT_LENGTH='';;
+		i)	IMAGE="${OPTARG}" ; SHOW_LINE_PREFIX='';;
+		l)	SHOW_LINE_PREFIX='y';;
+		q)	LOG_LEVEL='0'; SHOW_LINE_PREFIX='';;
 		s)	STRENGTH='GRAPH';;
 		v)	LOG_LEVEL='2';;
 	esac
@@ -326,7 +329,8 @@ else
 	disp e "Woups ! Unknown case"
 	exit ${E_CODES[unknown]}
 fi
-if [ -z "$SHAPE" ] ; then
+SHAPE=${SHAPE:='square'}
+if [ "$SHAPE" = 'random' ] ; then
 	s=$( bc <<< "$RANDOM % ${#SHAPES[*]}" )
 	SHAPE=${SHAPES[$s]}
 fi
