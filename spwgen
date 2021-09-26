@@ -1,0 +1,362 @@
+#!/usr/bin/env bash
+set -uo pipefail
+export LC_ALL=C
+# Valeurs par défaut
+DEFAULT_LENGTH=64
+# Rapport h/l de la fonte du terminal. Environ...
+FONT_SIZE_RATIO='15/7'
+HAVEGED="/usr/sbin/haveged"
+LOG_LEVEL="1"
+CACHE_DIR="$HOME/.cache/shaped-pwgen"
+# classe de chars dans laquelle tailler
+# et parce que sous MacOS la classe [:graph:] renvoie des bêtises
+declare -A POOL_SIZE
+declare -A POOL
+POOL[ALNUM]='a-zA-Z0-9'
+POOL[GRAPH]='a-zA-Z0-9\41\42\43\44\45\46\47\50\51\52\53\54\55\56\57\72\73\74\75\76\77\100\133\134\135\136\137\140\173\174\175\176'
+STRENGTH='ALNUM'
+RNG='openssl'
+
+SHAPES=('square' 'circle' 'triangle' 'cross')
+declare -A E_CODES
+E_CODES['shape']=1
+E_CODES['preflight']=2
+E_CODES['unknown']=255
+declare -A LOG_LEVELS
+LOG_LEVELS['DBG']=3
+LOG_LEVELS['INF']=2
+LOG_LEVELS['WRN']=1
+LOG_LEVELS['ERR']=0
+declare -A SHORT_LOG_LEVELS
+for s in "${!LOG_LEVELS[@]}" ; do
+	SHORT_LOG_LEVELS[${s:0:1}]="$s"
+done
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function disp() {
+	local level="${1^^}"
+	local msg="${2:-}"
+	if [ "${LOG_LEVELS[${SHORT_LOG_LEVELS[$level]}]}" -gt "$LOG_LEVEL" ] ; then
+		return
+	fi
+	local pref;pref="$(date "+%Y-%m-%d %H:%M:%S")"
+	printf '[%s][%s] %s\n' "$pref" "${SHORT_LOG_LEVELS[$level]}" "$msg" >&2
+}
+function preflight_check() {
+	if ! type -p bc >/dev/null ; then
+		disp e 'bc(1) not found' ; return 1
+	fi
+	if ! [[ $LENGTH =~ ^[0-9]+$ ]] ; then
+		disp e "'$LENGTH' is not int" ; return 1
+	fi
+	if [ "$LENGTH" -le 0 ] ; then
+		echo 'Size does matter'
+		return 1
+	fi
+	# On FreeBSD and MacOS, find GNU tr(1) and date(1)
+	case "$(uname -s)" in
+		FreeBSD|Darwin)	tr='gtr';date='gdate';;
+		*)				tr='tr';date='date';;
+	esac
+	case $RNG in
+		haveged)
+			if ! [ -e "${HAVEGED}" ] ; then disp e 'haveged(8) not found' ; return 1 ; else disp d 'haveged(8) is present' ; fi
+			if ! "${HAVEGED}" -n 1 -f /dev/null 2>/dev/null ; then disp e "Can't use haveged(8)" ; return 1 ; else disp d 'haveged(8) is usable' ; fi
+		;;
+		openssl)	if ! type -p $RNG >/dev/null ; then disp e 'openssl(1) not found (??)' ; return 1 ; else disp d 'openssl(1) found' ; fi;;
+		random)		if ! [ -c /dev/random ] ; then disp e '/dev/random not found or not a character device (??)' ; return 1 ; else disp d '/dev/random is usable'; fi;;
+		*)			disp e "Unknown RNG engine '$RNG'" ; return 1;;
+	esac
+	if ! echo "${SHAPES[@]}" | grep -w -q "$SHAPE" ; then
+		disp e "Unknown shape '$SHAPE'"
+		return 1
+	fi
+	# Calculate the pool size of each set of unique character
+	# https://www.omnicalculator.com/other/password-entropy#what-is-password-entropy
+	# Take a reasonable amount of random data, "filter" them through the pool, then count what outs
+	for pool in "${!POOL[@]}" ; do
+		POOL_SIZE[$pool]="$($tr -cd "${POOL[$pool]}" < /dev/urandom | fold -w 1 | head -1000 | sort -u | wc -l | xargs)"
+	done
+	mkdir -p "${CACHE_DIR}"
+	return 0
+}
+# Calculate the password entropy
+function pw_entropy() {
+	local LENGTH="$1"
+	local pool="$2"
+	bc -l <<< "$LENGTH*l(${POOL_SIZE[$pool]})/l(2)"
+}
+# Provide a stopwatch
+function stopwatch {
+	local opt; opt="$1"
+	if ! $date --version | grep -q GNU ; then
+		return 1
+	fi
+	local duration=''
+	case "$opt" in
+		start)	stopwatch_start="$($date +%s%N)";;
+		stop)
+			if [ -z "$stopwatch_start" ] ; then
+				return 2
+			fi
+			duration=$(( ( $($date +%s%N) - stopwatch_start ) / 1000000 ));;
+	esac
+	if [ -n "${duration}" ] ; then
+		unset stopwatch_start
+		echo "$duration"
+	fi
+}
+# Wrapper to the other RNG functions
+function generate() {
+	local RNG="$1"
+	local l="$2"
+	local h="${3:-$l}"
+	disp i "Calling RNG: $RNG"
+	( eval generate_"$RNG" "$l" "$h" | $tr -cd "${POOL[$STRENGTH]}" | fold -w "${l}" ) | head -"${h}"
+}
+function generate_random() {
+	cat /dev/random
+}
+function generate_openssl() {
+	local l="$1"
+	local h="${2:-$l}"
+	openssl rand $((10*l*h))
+}
+function generate_haveged() {
+	local l="$1"
+	local h="${2:-$l}"
+	"${HAVEGED}" -n $((10*l*h)) -f - 2>/dev/null
+}
+# Display a password with some prefix
+function print_pw() {
+	local p="$1"
+	local l="$2"
+	if [ -n "$SHOW_LINE_PREFIX" ] ; then
+		printf '%5.1f %3d |  ' "$(pw_entropy "$l" "$STRENGTH")" "$l"
+	fi
+	echo "${p}"
+}
+# Wrapper to the shapper functions
+function work() {
+	local RNG="$1"
+	local shape="$2"
+	local l="${3:-}"
+	local h="${4:-}"
+	case $shape in
+		square)		work_square "$RNG" "$l" "$h";;
+		triangle)	work_triangle "$RNG" "$l" "$h";;
+		circle)		work_circle "$RNG" "$l" "$h";;
+		cross)		work_cross "$RNG" "$l" "$h";;
+		*)
+			if [ -s "$shape" ] ; then
+				work_xpm "$RNG" "$shape" "$l" "$h"
+			else
+				disp e "Unknown shape '$shape'" ; exit "${E_CODES['shape']}"
+			fi;;
+	esac
+	return 0
+}
+function work_xpm() {
+	local rng="$1"
+	local file="$2"
+	local l="$3"
+	local h="$4"
+	local t ; t="$(mktemp)"
+	local n=1
+	stopwatch start
+	# Generate a full square of passwords. I'll use it as a pochoir
+	generate "$rng" "$l" "$h" > "$t"
+	# Take only dotted part of the xpm
+	awk '/pixels/{flag=1;next}/};/{flag=0}flag' "$file" | tr -d ',' | while read -r xpm_line ; do
+		# Take the nth password
+		r="$(sed -n "${n}p" "$t")"
+		local p=''
+		# Parse each char of the xpm line. If it's a dot, print the correspondant char from the password
+		for i in $(seq 1 ${#xpm_line}) ; do
+			if [ "${xpm_line:$i:1}" = '.' ] ; then
+				p+="${r:$i:1}"
+			else
+				p+=' '
+			fi
+		done
+		print_pw "$p" "0"
+		((n++))
+	done
+	rm -f "$t"
+	disp d "Time taken: $(stopwatch stop)ms"
+}
+function work_cross() {
+	local rng="$1"
+	local l="$2"
+	local h="$3"
+	local y=1
+	local spaces ; spaces="$(head -c "$l" < /dev/zero | tr '\0' ' ')"
+	stopwatch start
+	generate "$rng" "$l" "$h" | while read -r p ; do
+		if [ "$y" -le $((h/3)) ] || [ "$y" -gt $(( 2*h/3 )) ] ; then
+			x="$(( l/3 ))"
+			p="${spaces:0:$x}${p:0:$((l/3))}"
+			print_pw "$p" "$x"
+		else
+			print_pw "$p" "$l"
+		fi
+		((y++))
+	done
+	disp d "Time taken: $(stopwatch stop)ms"
+}
+function work_square() {
+	local rng="$1"
+	local l="$2"
+	local h="$3"
+	stopwatch start
+	generate "$rng" "$l" "$h" | while read -r p ; do
+		print_pw "$p" "$l"
+	done
+	disp d "Time taken: $(stopwatch stop)ms"
+}
+function work_circle() {
+	local rng="$1"
+	local l="$2"
+	local h="$3"
+	local y ; y="$(bc <<< "$h/2")"
+	local spaces ; spaces="$(head -c "$l" < /dev/zero | tr '\0' ' ')"
+	stopwatch start
+	generate "$RNG" "$l" "$h"	| while read -r p ; do
+		printf -v x '%.0f' "$(bc <<< "scale=2;$l*sqrt(1-($y/($h/2))^2)")"
+		print_pw "${spaces:0:$(( (l-x)/2 ))}${p:0:$x}" "$x"
+		((y--))
+	done
+	disp d "Time taken: $(stopwatch stop)ms"
+}
+function work_triangle() {
+	local rng="$1"
+	local l="$2"
+	local h="$3"
+	local x=1
+	local n=1
+	# Generate a string full of spaces
+	local spaces ; spaces="$(head -c "$l" < /dev/zero | tr '\0' ' ')"
+	stopwatch start
+	generate "$rng" "$l" "$h" | while read -r p ; do
+		x=$((n*l/h))
+		print_pw "${spaces:0:$((1+(l-x)/2))}${p:0:$x}" "$x"
+		((n++))
+	done
+	disp d "Time taken: $(stopwatch stop)ms"
+}
+function usage() {
+	cat <<EOF
+
+/\ O Generate shaped random passwords + □
+
+$0 [ -e <rng engine> ] [ -a <shape> | -i <image file> ] [ -l ] [ -d | -v | -q ] [ -s ] [ -<how many you want> ] [ <password length> ]
+$0 [ -e <rng engine> ] [ -a <shape> | -i <image file> ] [ -l ] [ -d | -v | -q ] [ -s ] -f
+$0 -h
+
+-a  : shape to shape output in. square, triangle, circle, cross or random. Default is square
+-d  : debug. Show debug, info, warning and error log level
+-e  : rng engine: haveged(8), openssl(1) or (/dev/)random. Default is $RNG. Speed: openssl >= random >> haveged
+-f  : full screen height: compute as many password as your terminal's lines, and calculate length so that shape is respected
+-i  : image file you want the password to be shaped in. Do not display passwords info such as entropy and length
+-q  : quiet. Show only errors log level and hide password entropy and length
+-s  : generated passwords will include special chars
+-v  : verbose. Show info, warning and error log level
+password length: (max) length of the generated passwords. Number of passwords vary accordingly to the shape. Default is $DEFAULT_LENGTH
+
+Default is to output entropy of the password (in bits), length, then the password itself.
+
+Examples:
+
+# Square shape, 64 char max
+	$ pwgen
+
+# Same, but use haveged(8) as a random generator, if available
+	$ pwgen -e haveged
+
+# One password of 64 char length, with special chars
+	$ pwgen -a circle -q -1 -s
+
+# A cross full of passwords, 22 char length max, and showing entropy and password length on each line
+	$ pwgen -a cross -l 22
+
+EOF
+}
+N_PASS='' ; FULL_HEIGHT='' ; IMAGE='' ; SHAPE='' ; SHOW_LINE_PREFIX=''
+while getopts ":a:de:fhi:lqsv" opt ; do
+	case ${opt} in
+		# Ahum... given -12, getopts will consider as -1 and -2, that are not defined, thus leading to opt=?
+		\?)	if [[ ${OPTARG:-} =~ [[:digit:]] ]] ; then
+				N_PASS=${N_PASS}${OPTARG}
+			fi
+			;;
+		a)	SHAPE="${OPTARG}";;
+		d)	LOG_LEVEL='3';;
+		e)	RNG="${OPTARG}";;
+		f)	FULL_HEIGHT='y';;
+		h)	usage; exit;;
+		i)	IMAGE="${OPTARG}" ; SHOW_LINE_PREFIX='';;
+		l)	SHOW_LINE_PREFIX='y';;
+		q)	LOG_LEVEL='0'; SHOW_LINE_PREFIX='';;
+		s)	STRENGTH='GRAPH';;
+		v)	LOG_LEVEL='2';;
+	esac
+done
+shift $((OPTIND-1))
+LENGTH=${1:-}
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+if [ -n "${SHAPE}" ] && [ -n "${IMAGE}" ] ; then
+		echo "Can't mix -a with -i"
+		exit ${E_CODES[preflight]}
+fi
+if [ -n "$FULL_HEIGHT" ] ; then
+	if [ -n "$N_PASS" ] || [ -n "$LENGTH" ] ; then
+		echo "Can't mix -f with -* or *"
+		exit ${E_CODES[preflight]}
+	else
+		N_PASS="$(( $(tput lines)-2))"
+		LENGTH=$( bc <<< "$N_PASS*$FONT_SIZE_RATIO" )
+	fi
+# Neither pass length nor number of pass are given
+elif [ -z "$LENGTH" ] && [ -z "$N_PASS" ] ; then
+	LENGTH=${DEFAULT_LENGTH}
+	N_PASS=$( bc <<< "$LENGTH/($FONT_SIZE_RATIO)" )
+# Pass length is given, calculate number of pass so that it's well shaped
+elif [ -n "$LENGTH" ] && [ -z "$N_PASS" ] ; then
+	N_PASS=$( bc <<< "$LENGTH/($FONT_SIZE_RATIO)" )
+# Number of pass is given, length is default length
+elif [ -n "$N_PASS" ] ; then
+	LENGTH=${DEFAULT_LENGTH}
+else
+	disp e "Woups ! Unknown case"
+	exit ${E_CODES[unknown]}
+fi
+SHAPE=${SHAPE:='square'}
+if [ "$SHAPE" = 'random' ] ; then
+	s=$( bc <<< "$RANDOM % ${#SHAPES[*]}" )
+	SHAPE=${SHAPES[$s]}
+fi
+if ! preflight_check ; then
+	echo 'Preflight check failed'
+	exit ${E_CODES[preflight]}
+fi
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+disp i "${LENGTH}x${N_PASS} < $RNG"
+if [ -z "${IMAGE:-}" ] ; then
+	disp i "Shape: $SHAPE"
+	work "$RNG" "${SHAPE}" "$LENGTH" "$N_PASS"
+else
+	if ! type -p convert >/dev/null ; then
+		disp e "convert(1) (of ImageMagick) not found"
+		exit ${E_CODES[preflight]}
+	elif [ -r "$IMAGE" ] ; then
+		md5=$(openssl md5 -r "${IMAGE}" | cut -d ' ' -f 1)
+		xpm="${CACHE_DIR}/${md5}-${LENGTH}x${N_PASS}.xpm"
+		if ! [ -s "$xpm" ] ; then
+			disp i "Converting $IMAGE to xpm"
+			convert "${IMAGE}" -scale "${LENGTH}!x${N_PASS}!" -monochrome "$xpm"
+		fi
+		work "$RNG" "$xpm" "$LENGTH" "$N_PASS"
+	else
+		disp e "Unreadable file $IMAGE"
+		exit ${E_CODES[preflight]}
+	fi
+fi

@@ -1,5 +1,5 @@
 
-# shaped-pwgen
+# shaped-spwgen
 
 Generate a shaped bunch of passwords
 
@@ -14,13 +14,15 @@ Generate a shaped bunch of passwords
 
 ## Installation
 
-Copy ```pwgen``` somewhere accessible by your ```$PATH```
+Copy ```spwgen``` somewhere accessible by your ```$PATH```.
+
+And/or alias it by ```alias pwgen=spwgen```
 
 # Running
 
 It's as simple as
 ```
-$ ./pwgen
+$ ./spwgen
 vgec1eYJqimtgtQ1u20h2bfqpcsTVtaFGnKdkVLUtxCSodwUZjOMcMpZIXE4A0F8
 8pXZ0Sbwp8fOZlAGplhWLuk1tQb6WBtQDLnR9QxK5hG1BVJaQRCZgr76LEm9OYO2
 fEs05F0gDk5DM0WUUfJgtAYM6bOepTD65WIHwan8xXp0eZTvlYlQI3053YbdMmic
@@ -54,7 +56,7 @@ A4AoIeSeZpbsOwantW7TV9q74yqKeVMKFVsHaRMzxKY8Hao9otoLhnAZWQs7izl1
 USxfnqcXZw5U33PAg2dUeaLsDPvfvmCZ8Xogob177Av3qbYYgl8GyKCK7K0Cu4L5
 AWqiomKzZCNa3382M6uwiPu0WFoRjWfl1xMqFhfZvycUNZvULRYyzNNDYvkWpsAA
 
-$ ./pwgen -a circle -l -s
+$ ./spwgen -a circle -l -s
   0.0   0 |                                  
 157.3  24 |                      E)9UFz3d(eZmJ$+)'NbEY"$s
 209.7  32 |                  WC_%SZ:d;M1s[Jw{V]-seF(mZ9+x[f_i
@@ -97,30 +99,30 @@ The latter generate max 64 char long password, circle shaped, with special chars
 
 It uses ```openssl(1)``` by default, but can also use ```haveged(8)``` if available or ```/dev/random```.
 
-	$ ./pwgen -e haveged
-	$ ./pwgen -e random
+	$ ./spwgen -e haveged
+	$ ./spwgen -e random
 
 ## Password strength, length and number
 
-```pwgen(1)``` compute max 64 char length passwords without special chars, that should be strong enough for the next decade.
+```spwgen(1)``` compute max 64 char length passwords without special chars, that should be strong enough for the next decade.
 
 You can specify lengthi, number, and more secure passwords:
 
-	$ ./pwgen 128		# 128 char long
-	$ ./pwgen -s		# give me some special chars
-	$ ./pwgen -s -12	# give me only 12, but secured
-	$ ./pwgen -f		# a full screen height of passwords
+	$ ./spwgen 128		# 128 char long
+	$ ./spwgen -s		# give me some special chars
+	$ ./spwgen -s -12	# give me only 12, but secured
+	$ ./spwgen -f		# a full screen height of passwords
 
 ## Shapes
 
-```pwgen(1)``` display your passwords in square, circle, cross or triangle. Default is to pick a random one among them.
+```spwgen(1)``` display your passwords in square, circle, cross or triangle. Default is to pick a random one among them.
 	
-	$ ./pwgen -a circle 42 -s		# a circle shaped of 42 char long secured passwords
+	$ ./spwgen -a circle 42 -s		# a circle shaped of 42 char long secured passwords
 
-If image is provided by ```-i```, ```pwgen(1)``` will shaped passwords accordingly (provided ImageMagick is installed):
+If image is provided by ```-i```, ```spwgen(1)``` will shaped passwords accordingly (provided ImageMagick is installed):
 
 ```
-·0·> ./pwgen -i cthulhu.png
+·0·> ./spwgen -i cthulhu.png
 
                              jDLM3
                      tCgrKc83gnExQuL9EinEfs
@@ -157,9 +159,9 @@ If image is provided by ```-i```, ```pwgen(1)``` will shaped passwords according
 
 ## Misc
 
-	$ ./pwgen -q		# Do not prepend lines by password length
-	$ ./pwgen -v		# Be verbose
-	$ ./pwgen -d		# Be more verbose
+	$ ./spwgen -q		# Do not prepend lines by password length
+	$ ./spwgen -v		# Be verbose
+	$ ./spwgen -d		# Be more verbose
 
 ## Caveats
 
