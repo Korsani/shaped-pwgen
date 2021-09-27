@@ -147,10 +147,21 @@ function work() {
 		circle)		work_circle "$RNG" "$l" "$h";;
 		cross)		work_cross "$RNG" "$l" "$h";;
 		*)
-			if [ -s "$shape" ] ; then
-				work_xpm "$RNG" "$shape" "$l" "$h"
+			if [ -r "$shape" ] ; then
+				if ! type -p convert >/dev/null ; then
+					disp e "convert(1) (of ImageMagick) not found"
+					exit ${E_CODES[preflight]}
+				fi
+				md5=$(openssl md5 -r "${shape}" | cut -d ' ' -f 1)
+				xpm="${CACHE_DIR}/${md5}-${LENGTH}x${N_PASS}.xpm"
+				if ! [ -s "$xpm" ] ; then
+					disp i "Converting $shape to xpm"
+					convert "${shape}" -scale "${LENGTH}!x${N_PASS}!" -monochrome "$xpm"
+				fi
+				work_xpm "$RNG" "${xpm}" "$l" "$h"
 			else
-				disp e "Unknown shape '$shape'" ; exit "${E_CODES['shape']}"
+				disp e "Unreadable file $IMAGE"
+				exit ${E_CODES[preflight]}
 			fi;;
 	esac
 	return 0
@@ -340,23 +351,8 @@ if ! preflight_check ; then
 fi
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 disp i "${LENGTH}x${N_PASS} < $RNG"
-if [ -z "${IMAGE:-}" ] ; then
-	disp i "Shape: $SHAPE"
-	work "$RNG" "${SHAPE}" "$LENGTH" "$N_PASS"
+if [ -n "${IMAGE}" ] ; then
+	work "$RNG" "${IMAGE}" "$LENGTH" "$N_PASS"
 else
-	if ! type -p convert >/dev/null ; then
-		disp e "convert(1) (of ImageMagick) not found"
-		exit ${E_CODES[preflight]}
-	elif [ -r "$IMAGE" ] ; then
-		md5=$(openssl md5 -r "${IMAGE}" | cut -d ' ' -f 1)
-		xpm="${CACHE_DIR}/${md5}-${LENGTH}x${N_PASS}.xpm"
-		if ! [ -s "$xpm" ] ; then
-			disp i "Converting $IMAGE to xpm"
-			convert "${IMAGE}" -scale "${LENGTH}!x${N_PASS}!" -monochrome "$xpm"
-		fi
-		work "$RNG" "$xpm" "$LENGTH" "$N_PASS"
-	else
-		disp e "Unreadable file $IMAGE"
-		exit ${E_CODES[preflight]}
-	fi
+	work "$RNG" "${SHAPE}" "$LENGTH" "$N_PASS"
 fi
