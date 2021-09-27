@@ -152,8 +152,9 @@ function work() {
 					disp e "convert(1) (of ImageMagick) not found"
 					exit ${E_CODES[preflight]}
 				fi
-				md5=$(openssl md5 -r "${shape}" | cut -d ' ' -f 1)
-				xpm="${CACHE_DIR}/${md5}-${LENGTH}x${N_PASS}.xpm"
+				# md4 is faster, which can be important on rpi...
+				md4=$(openssl md4 -r "${shape}" | cut -d ' ' -f 1)
+				xpm="${CACHE_DIR}/${md4}-${LENGTH}x${N_PASS}.xpm"
 				if ! [ -s "$xpm" ] ; then
 					disp i "Converting $shape to xpm"
 					convert "${shape}" -scale "${LENGTH}!x${N_PASS}!" -monochrome "$xpm"
