@@ -18,7 +18,7 @@ STRENGTH='ALNUM'
 RNG='openssl'
 
 SHAPES=('square' 'circle' 'triangle' 'cross')
-declare -A E_CODES
+declare -A E_CODES COLORS
 E_CODES['shape']=1
 E_CODES['preflight']=2
 E_CODES['unknown']=255
@@ -31,7 +31,14 @@ declare -A SHORT_LOG_LEVELS
 for s in "${!LOG_LEVELS[@]}" ; do
 	SHORT_LOG_LEVELS[${s:0:1}]="$s"
 done
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function is_terminfo() {
+	/usr/bin/ldd /usr/bin/tput | grep -Eq 'libtinfo|cygncursesw'
+}
+function is_termcap() {
+	/usr/bin/ldd /usr/bin/tput | grep -Eq 'libncursesw|libncurses'
+}
 function disp() {
 	local level="${1^^}"
 	local msg="${2:-}"
@@ -77,6 +84,18 @@ function preflight_check() {
 		POOL_SIZE[$pool]="$($tr -cd "${POOL[$pool]}" < /dev/urandom | fold -w 1 | head -1000 | sort -u | wc -l | xargs)"
 	done
 	mkdir -p "${CACHE_DIR}"
+	if is_terminfo ; then
+		af="setaf"
+		re="sgr0"
+	else
+		af="AF"
+		re="me"
+	fi
+	COLORS[yellow]=$(tput $af 3)
+	COLORS[red]=$(tput $af 1)
+	COLORS[green]=$(tput $af 2)
+	COLORS[reset]=$(tput $re)
+	COLORS[void]=''
 	return 0
 }
 # Calculate the password entropy
@@ -130,10 +149,21 @@ function generate_haveged() {
 function print_pw() {
 	local p="$1"
 	local l="$2"
+	# Default: show nothing, not even escape sequence
+	local color='void'
+	local reset='void'
 	if [ -n "$SHOW_LINE_PREFIX" ] ; then
-		printf '%5.1f %3d |  ' "$(pw_entropy "$l" "$STRENGTH")" "$l"
+		reset='reset'
+		local entropy="$(printf '%3.0f' "$(pw_entropy "$l" "$STRENGTH")")"
+		color='red'
+		if [ "$entropy" -ge 60 ] ; then
+			color='green'
+		elif [ "$entropy" -ge 40 ] ; then
+			color='yellow'
+		fi
+		printf "${COLORS[$color]}%3d${COLORS[$reset]}%3d |  " "$entropy" "$l"
 	fi
-	echo "${p}"
+	printf '%s\n' "${COLORS[$color]}${p}${COLORS[$reset]}"
 }
 # Wrapper to the shapper functions
 function work() {
@@ -269,6 +299,7 @@ $0 -h
 -e  : rng engine: haveged(8), openssl(1) or (/dev/)random. Default is $RNG. Speed: openssl >= random >> haveged
 -f  : full screen height: compute as many password as your terminal's lines, and calculate length so that shape is respected
 -i  : image file you want the password to be shaped in. Do not display passwords info such as entropy and length
+-l  : line prefix. Prepend each line with password entropy and length, and color password according to the entropy: red < 40 < yellow < 60 < green
 -q  : quiet. Show only errors log level and hide password entropy and length
 -s  : generated passwords will include special chars
 -v  : verbose. Show info, warning and error log level
