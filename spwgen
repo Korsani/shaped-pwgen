@@ -10,8 +10,8 @@ LOG_LEVEL="1"
 CACHE_DIR="$HOME/.cache/shaped-pwgen"
 # classe de chars dans laquelle tailler
 # et parce que sous MacOS la classe [:graph:] renvoie des bêtises
-declare -A POOL_SIZE
-declare -A POOL
+declare -A POOL_SIZE POOL
+export ldd
 POOL[ALNUM]='a-zA-Z0-9'
 POOL[GRAPH]='a-zA-Z0-9\41\42\43\44\45\46\47\50\51\52\53\54\55\56\57\72\73\74\75\76\77\100\133\134\135\136\137\140\173\174\175\176'
 STRENGTH='ALNUM'
@@ -33,11 +33,11 @@ for s in "${!LOG_LEVELS[@]}" ; do
 done
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-function is_terminfo() {
-	/usr/bin/ldd /usr/bin/tput | grep -Eq 'libtinfo|cygncursesw'
+function is_terminfo() { 	# MacOS, Linux, Cygwin
+	$ldd /usr/bin/tput | grep -Eq 'libtinfo|cygncursesw|libncurses\.'
 }
-function is_termcap() {
-	/usr/bin/ldd /usr/bin/tput | grep -Eq 'libncursesw|libncurses'
+function is_termcap() {		# FreeBSD
+	$ldd /usr/bin/tput | grep -Eq 'libncursesw'
 }
 function disp() {
 	local level="${1^^}"
@@ -84,6 +84,11 @@ function preflight_check() {
 		POOL_SIZE[$pool]="$($tr -cd "${POOL[$pool]}" < /dev/urandom | fold -w 1 | head -1000 | sort -u | wc -l | xargs)"
 	done
 	mkdir -p "${CACHE_DIR}"
+	if [ "$(uname)" == "Darwin" ] ; then
+		ldd="otool -L"
+	else
+		ldd=ldd
+	fi
 	if is_terminfo ; then
 		af="setaf"
 		re="sgr0"
