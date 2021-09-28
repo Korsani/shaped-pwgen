@@ -310,8 +310,6 @@ $0 -h
 -v  : verbose. Show info, warning and error log level
 password length: (max) length of the generated passwords. Number of passwords vary accordingly to the shape. Default is $DEFAULT_LENGTH
 
-Default is to output entropy of the password (in bits), length, then the password itself.
-
 Examples:
 
 # Square shape, 64 char max
