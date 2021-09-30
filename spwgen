@@ -10,15 +10,15 @@ LOG_LEVEL="1"
 CACHE_DIR="$HOME/.cache/shaped-pwgen"
 # classe de chars dans laquelle tailler
 # et parce que sous MacOS la classe [:graph:] renvoie des bêtises
-declare -A POOL_SIZE
-declare -A POOL
+declare -A POOL_SIZE POOL
+export ldd
 POOL[ALNUM]='a-zA-Z0-9'
 POOL[GRAPH]='a-zA-Z0-9\41\42\43\44\45\46\47\50\51\52\53\54\55\56\57\72\73\74\75\76\77\100\133\134\135\136\137\140\173\174\175\176'
 STRENGTH='ALNUM'
 RNG='openssl'
 
 SHAPES=('square' 'circle' 'triangle' 'cross')
-declare -A E_CODES
+declare -A E_CODES COLORS
 E_CODES['shape']=1
 E_CODES['preflight']=2
 E_CODES['unknown']=255
@@ -31,7 +31,14 @@ declare -A SHORT_LOG_LEVELS
 for s in "${!LOG_LEVELS[@]}" ; do
 	SHORT_LOG_LEVELS[${s:0:1}]="$s"
 done
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+function is_terminfo() { 	# MacOS, Linux, Cygwin
+	$ldd /usr/bin/tput | grep -Eq 'libtinfo|cygncursesw|libncurses\.'
+}
+function is_termcap() {		# FreeBSD
+	$ldd /usr/bin/tput | grep -Eq 'libncursesw'
+}
 function disp() {
 	local level="${1^^}"
 	local msg="${2:-}"
@@ -77,6 +84,23 @@ function preflight_check() {
 		POOL_SIZE[$pool]="$($tr -cd "${POOL[$pool]}" < /dev/urandom | fold -w 1 | head -1000 | sort -u | wc -l | xargs)"
 	done
 	mkdir -p "${CACHE_DIR}"
+	if [ "$(uname)" == "Darwin" ] ; then
+		ldd="otool -L"
+	else
+		ldd=ldd
+	fi
+	if is_terminfo ; then
+		af="setaf"
+		re="sgr0"
+	else
+		af="AF"
+		re="me"
+	fi
+	COLORS[yellow]=$(tput $af 3)
+	COLORS[red]=$(tput $af 1)
+	COLORS[green]=$(tput $af 2)
+	COLORS[reset]=$(tput $re)
+	COLORS[void]=''
 	return 0
 }
 # Calculate the password entropy
@@ -130,10 +154,21 @@ function generate_haveged() {
 function print_pw() {
 	local p="$1"
 	local l="$2"
+	# Default: show nothing, not even escape sequence
+	local color='void'
+	local reset='void'
 	if [ -n "$SHOW_LINE_PREFIX" ] ; then
-		printf '%5.1f %3d |  ' "$(pw_entropy "$l" "$STRENGTH")" "$l"
+		reset='reset'
+		local entropy="$(printf '%3.0f' "$(pw_entropy "$l" "$STRENGTH")")"
+		color='red'
+		if [ "$entropy" -ge 60 ] ; then
+			color='green'
+		elif [ "$entropy" -ge 40 ] ; then
+			color='yellow'
+		fi
+		printf "${COLORS[$color]}%3d${COLORS[$reset]}%3d |  " "$entropy" "$l"
 	fi
-	echo "${p}"
+	printf '%s\n' "${COLORS[$color]}${p}${COLORS[$reset]}"
 }
 # Wrapper to the shapper functions
 function work() {
@@ -147,10 +182,22 @@ function work() {
 		circle)		work_circle "$RNG" "$l" "$h";;
 		cross)		work_cross "$RNG" "$l" "$h";;
 		*)
-			if [ -s "$shape" ] ; then
-				work_xpm "$RNG" "$shape" "$l" "$h"
+			if [ -r "$shape" ] ; then
+				if ! type -p convert >/dev/null ; then
+					disp e "convert(1) (of ImageMagick) not found"
+					exit ${E_CODES[preflight]}
+				fi
+				# md4 is faster, which can be important on rpi...
+				md4=$(openssl md4 -r "${shape}" | cut -d ' ' -f 1)
+				xpm="${CACHE_DIR}/${md4}-${LENGTH}x${N_PASS}.xpm"
+				if ! [ -s "$xpm" ] ; then
+					disp i "Converting $shape to xpm"
+					convert "${shape}" -scale "${LENGTH}!x${N_PASS}!" -monochrome "$xpm"
+				fi
+				work_xpm "$RNG" "${xpm}" "$l" "$h"
 			else
-				disp e "Unknown shape '$shape'" ; exit "${E_CODES['shape']}"
+				disp e "Unreadable file $IMAGE"
+				exit ${E_CODES[preflight]}
 			fi;;
 	esac
 	return 0
@@ -257,6 +304,7 @@ $0 -h
 -e  : rng engine: haveged(8), openssl(1) or (/dev/)random. Default is $RNG. Speed: openssl >= random >> haveged
 -f  : full screen height: compute as many password as your terminal's lines, and calculate length so that shape is respected
 -i  : image file you want the password to be shaped in. Do not display passwords info such as entropy and length
+-l  : line prefix. Prepend each line with password entropy and length, and color password according to the entropy: red < 40 < yellow < 60 < green
 -q  : quiet. Show only errors log level and hide password entropy and length
 -s  : generated passwords will include special chars
 -v  : verbose. Show info, warning and error log level
@@ -340,23 +388,8 @@ if ! preflight_check ; then
 fi
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 disp i "${LENGTH}x${N_PASS} < $RNG"
-if [ -z "${IMAGE:-}" ] ; then
-	disp i "Shape: $SHAPE"
-	work "$RNG" "${SHAPE}" "$LENGTH" "$N_PASS"
+if [ -n "${IMAGE}" ] ; then
+	work "$RNG" "${IMAGE}" "$LENGTH" "$N_PASS"
 else
-	if ! type -p convert >/dev/null ; then
-		disp e "convert(1) (of ImageMagick) not found"
-		exit ${E_CODES[preflight]}
-	elif [ -r "$IMAGE" ] ; then
-		md5=$(openssl md5 -r "${IMAGE}" | cut -d ' ' -f 1)
-		xpm="${CACHE_DIR}/${md5}-${LENGTH}x${N_PASS}.xpm"
-		if ! [ -s "$xpm" ] ; then
-			disp i "Converting $IMAGE to xpm"
-			convert "${IMAGE}" -scale "${LENGTH}!x${N_PASS}!" -monochrome "$xpm"
-		fi
-		work "$RNG" "$xpm" "$LENGTH" "$N_PASS"
-	else
-		disp e "Unreadable file $IMAGE"
-		exit ${E_CODES[preflight]}
-	fi
+	work "$RNG" "${SHAPE}" "$LENGTH" "$N_PASS"
 fi
