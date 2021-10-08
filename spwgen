@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -uo pipefail
+export PS4="+\$LINENO: "
 export LC_ALL=C
 # Valeurs par défaut
 DEFAULT_LENGTH=64
@@ -361,14 +362,14 @@ if [ -n "$FULL_HEIGHT" ] ; then
 		N_PASS="$(( $(tput lines)-2))"
 		LENGTH=$( bc <<< "$N_PASS*$FONT_SIZE_RATIO" )
 	fi
-# Neither pass length nor number of pass are given
+# Neither pw length nor number of pw are given
 elif [ -z "$LENGTH" ] && [ -z "$N_PASS" ] ; then
 	LENGTH=${DEFAULT_LENGTH}
 	N_PASS=$( bc <<< "$LENGTH/($FONT_SIZE_RATIO)" )
-# Pass length is given, calculate number of pass so that it's well shaped
+# Pw length is given, calculate number of pw so that it's well shaped
 elif [ -n "$LENGTH" ] && [ -z "$N_PASS" ] ; then
 	N_PASS=$( bc <<< "$LENGTH/($FONT_SIZE_RATIO)" )
-# Number of pass is given, length is default length
+# Number of pw is given, length is default length
 elif [ -n "$N_PASS" ] ; then
 	LENGTH=${DEFAULT_LENGTH}
 else
