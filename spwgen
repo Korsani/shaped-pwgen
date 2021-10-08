@@ -22,6 +22,7 @@ SHAPES=('square' 'circle' 'triangle' 'cross')
 declare -A E_CODES COLORS
 E_CODES['shape']=1
 E_CODES['preflight']=2
+E_CODES['options']=3
 E_CODES['unknown']=255
 declare -A LOG_LEVELS
 LOG_LEVELS['DBG']=3
@@ -328,13 +329,13 @@ Examples:
 EOF
 }
 N_PASS='' ; FULL_HEIGHT='' ; IMAGE='' ; SHAPE='' ; SHOW_LINE_PREFIX=''
+for i in "$@" ; do
+	if [[ $i =~ ^-[0-9]+$ ]] ; then
+		N_PASS=${i#-}
+	fi
+done
 while getopts ":a:de:fhi:lqsv" opt ; do
 	case ${opt} in
-		# Ahum... given -12, getopts will consider as -1 and -2, that are not defined, thus leading to opt=?
-		\?)	if [[ ${OPTARG:-} =~ [[:digit:]] ]] ; then
-				N_PASS=${N_PASS}${OPTARG}
-			fi
-			;;
 		a)	SHAPE="${OPTARG}";;
 		d)	LOG_LEVEL='3';;
 		e)	RNG="${OPTARG}";;
@@ -345,6 +346,8 @@ while getopts ":a:de:fhi:lqsv" opt ; do
 		q)	LOG_LEVEL='0'; SHOW_LINE_PREFIX='';;
 		s)	STRENGTH='GRAPH';;
 		v)	LOG_LEVEL='2';;
+		\?)	;;
+		*)	echo '??' ; exit "${E_CODES[options]}" ;;
 	esac
 done
 shift $((OPTIND-1))
@@ -370,12 +373,9 @@ elif [ -z "$LENGTH" ] && [ -z "$N_PASS" ] ; then
 elif [ -n "$LENGTH" ] && [ -z "$N_PASS" ] ; then
 	N_PASS=$( bc <<< "$LENGTH/($FONT_SIZE_RATIO)" )
 # Number of pw is given, length is default length
-elif [ -n "$N_PASS" ] ; then
+elif [ -z "$LENGTH" ] && [ -n "$N_PASS" ] ; then
 	LENGTH=${DEFAULT_LENGTH}
-else
-	disp e "Woups ! Unknown case"
-	exit ${E_CODES[unknown]}
-fi
+fi # Number of pw and length are given
 SHAPE=${SHAPE:='square'}
 if [ "$SHAPE" = 'random' ] ; then
 	s=$( bc <<< "$RANDOM % ${#SHAPES[*]}" )
