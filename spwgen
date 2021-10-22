@@ -98,10 +98,10 @@ function preflight_check() {
 		af="AF"
 		re="me"
 	fi
-	COLORS[yellow]=$(tput $af 3)
-	COLORS[red]=$(tput $af 1)
-	COLORS[green]=$(tput $af 2)
-	COLORS[reset]=$(tput $re)
+	COLORS[yellow]="$(tput $af 3)"
+	COLORS[red]="$(tput $af 1)"
+	COLORS[green]="$(tput $af 2)"
+	COLORS[reset]="$(tput $re)"
 	COLORS[void]=''
 	return 0
 }
