@@ -36,7 +36,11 @@ done
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 function is_terminfo() { 	# MacOS, Linux, Cygwin
-	$ldd /usr/bin/tput | grep -Eq 'libtinfo|cygncursesw|libncurses\.'
+	# If I use ldd | grep, sometimes it fails, duno why...
+	local t="$(mktemp)"
+	$ldd /usr/bin/tput > "$t"
+	grep -Eq 'libtinfo|cygncursesw|libncurses\.' "$t"
+	rm -f "$t"
 }
 function is_termcap() {		# FreeBSD
 	$ldd /usr/bin/tput | grep -Eq 'libncursesw'
@@ -89,14 +93,17 @@ function preflight_check() {
 	if [ "$(uname)" == "Darwin" ] ; then
 		ldd="otool -L"
 	else
-		ldd=ldd
+		ldd="/usr/bin/ldd"
 	fi
 	if is_terminfo ; then
 		af="setaf"
 		re="sgr0"
-	else
+	elif is_termcap ; then
 		af="AF"
 		re="me"
+	else
+		disp e "Neither termcap nor terminfo ??"
+		return 1
 	fi
 	COLORS[yellow]="$(tput $af 3)"
 	COLORS[red]="$(tput $af 1)"
