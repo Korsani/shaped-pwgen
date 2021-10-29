@@ -37,7 +37,7 @@ done
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 function is_terminfo() { 	# MacOS, Linux, Cygwin
 	# If I use ldd | grep, sometimes it fails, duno why...
-	local t="$(mktemp)"
+	local t; t="$(mktemp)"
 	$ldd /usr/bin/tput > "$t"
 	grep -Eq 'libtinfo|cygncursesw|libncurses\.' "$t"
 	rm -f "$t"
@@ -168,7 +168,7 @@ function print_pw() {
 	local reset='void'
 	if [ -n "$SHOW_LINE_PREFIX" ] ; then
 		reset='reset'
-		local entropy="$(printf '%3.0f' "$(pw_entropy "$l" "$STRENGTH")")"
+		local entropy; entropy="$(printf '%3.0f' "$(pw_entropy "$l" "$STRENGTH")")"
 		color='red'
 		if [ "$entropy" -ge 60 ] ; then
 			color='green'
@@ -312,7 +312,7 @@ $0 -h
 -d  : debug. Show debug, info, warning and error log level
 -e  : rng engine: haveged(8), openssl(1) or (/dev/)random. Default is $RNG. Speed: openssl >= random >> haveged
 -f  : full screen height: compute as many password as your terminal's lines, and calculate length so that shape is respected
--i  : image file you want the password to be shaped in. Do not display passwords info such as entropy and length
+-i  : image file you want the password to be shaped in. Disable -l
 -l  : line prefix. Prepend each line with password entropy and length, and color password according to the entropy: red < 40 < yellow < 60 < green
 -q  : quiet. Show only errors log level and hide password entropy and length
 -s  : generated passwords will include special chars
@@ -349,7 +349,7 @@ while getopts ":a:de:fhi:lqsv" opt ; do
 		f)	FULL_HEIGHT='y';;
 		h)	usage; exit;;
 		i)	IMAGE="${OPTARG}" ; SHOW_LINE_PREFIX='';;
-		l)	SHOW_LINE_PREFIX='y';;
+		l)	[ -z "${IMAGE:-}" ] && SHOW_LINE_PREFIX='y';;
 		q)	LOG_LEVEL='0'; SHOW_LINE_PREFIX='';;
 		s)	STRENGTH='GRAPH';;
 		v)	LOG_LEVEL='2';;
