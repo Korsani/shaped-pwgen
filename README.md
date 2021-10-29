@@ -1,5 +1,5 @@
 
-# shaped-spwgen
+# shaped-pwgen
 
 Generate a shaped bunch of passwords
 
@@ -58,37 +58,37 @@ AWqiomKzZCNa3382M6uwiPu0WFoRjWfl1xMqFhfZvycUNZvULRYyzNNDYvkWpsAA
 
 $ ./spwgen -a circle -l -s
   0.0   0 |                                  
-157.3  24 |                      E)9UFz3d(eZmJ$+)'NbEY"$s
-209.7  32 |                  WC_%SZ:d;M1s[Jw{V]-seF(mZ9+x[f_i
-249.1  38 |               &W6."9(6C|&!B%Cfa=sgFGuWbDUQ,]!K2(vGaz
-275.3  42 |             T]l4'g=0ZDn4[\O3yi/'sTS5F)/wP&>!bQd2R30w:3
-308.1  47 |          xM~DZR\al_a+w/+Bc]dA*$Bb3m7Z/BMtE)Ja@ohblU4QX+?
-327.7  50 |         ?`eZkqzF+uY4HFZv\)G9qVe'sOqw'zd$;AtozqQt&,s@^Sa<M^
-347.4  53 |       X1;Q5K#%UwfFGlnR!ar]7^`pj^\3T:wd(x.!{p/O;+-E[^.cHbt'm
-360.5  55 |      L9.^,r.1%vWpdc/Jrda6{dgk9M[~KaXyV~Ygpc)hsLgP^Nq,Qwm_B;s
-380.2  58 |     (xwuK3-;qJZW%elMI=jG{dlJh<Mw$b5m_b6Cz2D1jl6!9!jOGb{wuIi>nH
-393.3  60 |    zBS55]+!G=h"EHZ.j*/t56)Klv8tdm,&hMUOF~yzrg#*P4)utPS\JL(yIXlZ
-399.8  61 |   cc23<&wk{?BJ8e!)8E{?v#ra}2nanCDl[1&`K:.NOOfUf5JvcYpg2.qa[S-AI
-399.8  61 |   ApI$QwHig;v9'x18a@pWTv^2Bi<QVzM_/Uq{08s=V5$RLh\X_,OW^ZmJFj&iH
-412.9  63 |  1qKs@NWEfT1~yF4f\(nW@.cq"&9}>/H[[#u(:H#_W/SYE<b(d|?dC8#X>_F%494
-412.9  63 |  n8q(7jiTvKjbI;fe@&0>C0kU`06?8@;:NL71$e8Sh6c^-$\83(PEHKo'J/8[=-O
-419.5  64 |  uu/u=R~$:mG%u0jXB4uRG~w#\o:1/}{Fs^#zay:G^?55Gy]DRA%(zqrY/oC#%r%]
-419.5  64 |  M/eT;Y.dp_m%jO%*<hp}8?w8mdlv5W<&UHAY,uE{2-iU)G.H-E8y7_bnY:|3#uNh
-419.5  64 |  4~)#.@K#IfrN&Fd]`eA'&NU>1ul]H=mG(]@<r=EU]f(`R`GvFpi2]Em<*>b$vHj}
-412.9  63 |  (6!:JXAF)Y2M$3YSkp}E.<Vd~7Q[$)AY:aZds1r}-(&j7?r.@w'RwelZ)zhiI/7
-412.9  63 |  z+5,nVaedRFt$(Qh44kc>U\B1/zrKa1dM'@D)FE<"QWDnZ$"&3NYRdkj5Eh";My
-399.8  61 |   Y}bRZ{hHzgn<2k?_~4lLL([CscG>T<$-jZEAm%*J,~"MI(ukfr:_/hLF\[r2/
-399.8  61 |   e"Nv%U"s6@n:>#1,n-Dq)B7sh7-.X:NKkdwnvd/@Xi);!"6o}&*3gP{tjtg\_
-393.3  60 |    NCInh&D`:,<iGTf.{npDO(gj-7*;]C5~%lK]EfC\~iyh}r0wJf_)2`EbZOML
-380.2  58 |     5VJ7&,1uj}9{.'94]nx,5%mJfA"'}BM+~-OOmP{q*@1y&-#nyu)OL'|7v>
-360.5  55 |      q%:Xr4sbe~(leH&&/lhQzzw[vh.,x}M3wvfioag[t;h<9YiBB]b2yL]
-347.4  53 |       NTUr|mHW-;`SB7tE'`!a9VF,T/VRHYYQ5kH@YD%C>Zh=p5Q+qlE&&
-327.7  50 |         *EhMyhM8/Jw1suX[Wmv+Bp6f"5\kAt{LbC0zaW?aP3=V+1+m#D
-308.1  47 |          l7cZ@a>Q<Pv-sx%Z0*4ya(dbXUC<q:]=*N;xI!`sr?/mtp7
-275.3  42 |             b6pq0]4R%T`|?"n=B\b.}itO{.%BtPnJ*|fE6uaih;
-249.1  38 |               vOUe+oxFLgwg8IRn]4>=Sgl!"3t4qqi{_he%DS
-209.7  32 |                  U4dc%kXFu/F/pv[~P=t5Jjk,As$$FuHq
-157.3  24 |                      l1)ov(]:aN?e*1oB:xQ>oBfm
+157  24 |                      E)9UFz3d(eZmJ$+)'NbEY"$s
+209  32 |                  WC_%SZ:d;M1s[Jw{V]-seF(mZ9+x[f_i
+249  38 |               &W6."9(6C|&!B%Cfa=sgFGuWbDUQ,]!K2(vGaz
+275  42 |             T]l4'g=0ZDn4[\O3yi/'sTS5F)/wP&>!bQd2R30w:3
+308  47 |          xM~DZR\al_a+w/+Bc]dA*$Bb3m7Z/BMtE)Ja@ohblU4QX+?
+327  50 |         ?`eZkqzF+uY4HFZv\)G9qVe'sOqw'zd$;AtozqQt&,s@^Sa<M^
+347  53 |       X1;Q5K#%UwfFGlnR!ar]7^`pj^\3T:wd(x.!{p/O;+-E[^.cHbt'm
+360  55 |      L9.^,r.1%vWpdc/Jrda6{dgk9M[~KaXyV~Ygpc)hsLgP^Nq,Qwm_B;s
+380  58 |     (xwuK3-;qJZW%elMI=jG{dlJh<Mw$b5m_b6Cz2D1jl6!9!jOGb{wuIi>nH
+393  60 |    zBS55]+!G=h"EHZ.j*/t56)Klv8tdm,&hMUOF~yzrg#*P4)utPS\JL(yIXlZ
+399  61 |   cc23<&wk{?BJ8e!)8E{?v#ra}2nanCDl[1&`K:.NOOfUf5JvcYpg2.qa[S-AI
+399  61 |   ApI$QwHig;v9'x18a@pWTv^2Bi<QVzM_/Uq{08s=V5$RLh\X_,OW^ZmJFj&iH
+412  63 |  1qKs@NWEfT1~yF4f\(nW@.cq"&9}>/H[[#u(:H#_W/SYE<b(d|?dC8#X>_F%494
+412  63 |  n8q(7jiTvKjbI;fe@&0>C0kU`06?8@;:NL71$e8Sh6c^-$\83(PEHKo'J/8[=-O
+419  64 |  uu/u=R~$:mG%u0jXB4uRG~w#\o:1/}{Fs^#zay:G^?55Gy]DRA%(zqrY/oC#%r%]
+419  64 |  M/eT;Y.dp_m%jO%*<hp}8?w8mdlv5W<&UHAY,uE{2-iU)G.H-E8y7_bnY:|3#uNh
+419  64 |  4~)#.@K#IfrN&Fd]`eA'&NU>1ul]H=mG(]@<r=EU]f(`R`GvFpi2]Em<*>b$vHj}
+412  63 |  (6!:JXAF)Y2M$3YSkp}E.<Vd~7Q[$)AY:aZds1r}-(&j7?r.@w'RwelZ)zhiI/7
+412  63 |  z+5,nVaedRFt$(Qh44kc>U\B1/zrKa1dM'@D)FE<"QWDnZ$"&3NYRdkj5Eh";My
+399  61 |   Y}bRZ{hHzgn<2k?_~4lLL([CscG>T<$-jZEAm%*J,~"MI(ukfr:_/hLF\[r2/
+399  61 |   e"Nv%U"s6@n:>#1,n-Dq)B7sh7-.X:NKkdwnvd/@Xi);!"6o}&*3gP{tjtg\_
+393  60 |    NCInh&D`:,<iGTf.{npDO(gj-7*;]C5~%lK]EfC\~iyh}r0wJf_)2`EbZOML
+380  58 |     5VJ7&,1uj}9{.'94]nx,5%mJfA"'}BM+~-OOmP{q*@1y&-#nyu)OL'|7v>
+360  55 |      q%:Xr4sbe~(leH&&/lhQzzw[vh.,x}M3wvfioag[t;h<9YiBB]b2yL]
+347  53 |       NTUr|mHW-;`SB7tE'`!a9VF,T/VRHYYQ5kH@YD%C>Zh=p5Q+qlE&&
+327  50 |         *EhMyhM8/Jw1suX[Wmv+Bp6f"5\kAt{LbC0zaW?aP3=V+1+m#D
+308  47 |          l7cZ@a>Q<Pv-sx%Z0*4ya(dbXUC<q:]=*N;xI!`sr?/mtp7
+275  42 |             b6pq0]4R%T`|?"n=B\b.}itO{.%BtPnJ*|fE6uaih;
+249  38 |               vOUe+oxFLgwg8IRn]4>=Sgl!"3t4qqi{_he%DS
+209  32 |                  U4dc%kXFu/F/pv[~P=t5Jjk,As$$FuHq
+157  24 |                      l1)ov(]:aN?e*1oB:xQ>oBfm
 ```
 
 The former generate a square of 64 char length passwords. As they contain no special chars, they should be easy to copy/paste.
