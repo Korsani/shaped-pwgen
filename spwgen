@@ -110,7 +110,11 @@ function pw_entropy() {
 }
 function pw_length_given_entropy() {
 	local pool="$1"
-	bc -l <<< "${PW_HW_ENTROPY}*l(2)/l(${POOL_SIZE[$pool]})"
+	local s
+	printf -v s "%.0f" "$(bc -l <<< "${PW_HW_ENTROPY}*l(2)/l(${POOL_SIZE[$pool]})")"
+	((s++))
+	disp i "Min length is $s char"
+	echo "$s"
 }
 # Provide a stopwatch
 function stopwatch {
@@ -381,8 +385,7 @@ if ! preflight_check ; then
 	exit ${E_CODES[preflight]}
 fi
 if [ -n "${QUICK:-}" ] ; then
-	printf -v LENGTH "%.0f" "$(pw_length_given_entropy $STRENGTH)"
-	((LENGTH++))
+	LENGTH="$(pw_length_given_entropy $STRENGTH)"
 fi
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 if [ -n "${SHAPE}" ] && [ -n "${IMAGE}" ] ; then
