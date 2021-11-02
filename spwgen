@@ -325,8 +325,8 @@ $0 -h
 -e  : rng engine: haveged(8), openssl(1) or (/dev/)random. Default is $RNG. Speed: openssl >= random >> haveged
 -f  : full screen height: compute as many password as your terminal's lines, and calculate length so that shape is respected
 -i  : image file you want the password to be shaped in. Disable -l
--k	: quick. Compute password length so that entropy is ${PW_HW_ENTROPY}
--l  : line prefix. Prepend each line with password entropy and length, and color password according to the entropy: red < ${PW_LW_ENTROPY} < yellow < ${PW_HW_ENTROPY} < green
+-k  : quick. Compute password length so that entropy is just above ${PW_HW_ENTROPY}b
+-l  : line prefix. Prepend each line with password entropy and length, and color password according to the entropy: red < ${PW_LW_ENTROPY}b < yellow < ${PW_HW_ENTROPY}b < green
 -q  : quiet. Show only errors log level and hide password entropy and length
 -s  : generated passwords will include special chars
 -v  : verbose. Show info, warning and error log level
@@ -345,6 +345,9 @@ Examples:
 
 # A cross full of passwords, 22 char length max, and showing entropy and password length on each line
 	$ pwgen -a cross -l 22
+
+# Fairly strong password, not absurdly long
+	$ pwgen -k
 
 EOF
 }

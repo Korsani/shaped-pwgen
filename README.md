@@ -57,7 +57,7 @@ USxfnqcXZw5U33PAg2dUeaLsDPvfvmCZ8Xogob177Av3qbYYgl8GyKCK7K0Cu4L5
 AWqiomKzZCNa3382M6uwiPu0WFoRjWfl1xMqFhfZvycUNZvULRYyzNNDYvkWpsAA
 
 $ ./spwgen -a circle -l -s
-  0.0   0 |                                  
+0.0   0 |                                  
 157  24 |                      E)9UFz3d(eZmJ$+)'NbEY"$s
 209  32 |                  WC_%SZ:d;M1s[Jw{V]-seF(mZ9+x[f_i
 249  38 |               &W6."9(6C|&!B%Cfa=sgFGuWbDUQ,]!K2(vGaz
@@ -104,7 +104,7 @@ It uses ```openssl(1)``` by default, but can also use ```haveged(8)``` if availa
 
 ## Password strength, length and number
 
-```spwgen(1)``` compute max 64 char length passwords without special chars, that should be strong enough for the next decade.
+```spwgen(1)``` compute max 64 char length passwords without special chars, that should be strong enough for years, according to [this](https://generatepasswords.org/how-to-calculate-entropy/).
 
 You can specify length, number, and more secure passwords:
 
@@ -113,6 +113,8 @@ You can specify length, number, and more secure passwords:
 	$ ./spwgen -s -12	# give me only 12, but secured
 	$ ./spwgen -f		# a full screen height of passwords
 	$ ./spwgen -k		# compute password size so that it's short BUT secure enough
+
+Password is considered weak if entropy is < 40 bits, and strong if entropy > 60 bits. This may (will) vary...
 
 ## Shapes
 
