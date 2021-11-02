@@ -17,7 +17,8 @@ POOL[ALNUM]='a-zA-Z0-9'
 POOL[GRAPH]='a-zA-Z0-9\41\42\43\44\45\46\47\50\51\52\53\54\55\56\57\72\73\74\75\76\77\100\133\134\135\136\137\140\173\174\175\176'
 STRENGTH='ALNUM'
 RNG='openssl'
-
+PW_LW_ENTROPY=40		# Below this entropy it's REALLY weak
+PW_HW_ENTROPY=60		# Above this entropy it's fairly strong
 SHAPES=('square' 'circle' 'triangle' 'cross')
 declare -A E_CODES COLORS
 E_CODES['shape']=1
@@ -58,13 +59,6 @@ function preflight_check() {
 	if ! type -p bc >/dev/null ; then
 		disp e 'bc(1) not found' ; return 1
 	fi
-	if ! [[ $LENGTH =~ ^[0-9]+$ ]] ; then
-		disp e "'$LENGTH' is not int" ; return 1
-	fi
-	if [ "$LENGTH" -le 0 ] ; then
-		echo 'Size does matter'
-		return 1
-	fi
 	# On FreeBSD and MacOS, find GNU tr(1) and date(1)
 	case "$(uname -s)" in
 		FreeBSD|Darwin)	tr='gtr';date='gdate';;
@@ -79,10 +73,6 @@ function preflight_check() {
 		random)		if ! [ -c /dev/random ] ; then disp e '/dev/random not found or not a character device (??)' ; return 1 ; else disp d '/dev/random is usable'; fi;;
 		*)			disp e "Unknown RNG engine '$RNG'" ; return 1;;
 	esac
-	if ! echo "${SHAPES[@]}" | grep -w -q "$SHAPE" ; then
-		disp e "Unknown shape '$SHAPE'"
-		return 1
-	fi
 	# Calculate the pool size of each set of unique character
 	# https://www.omnicalculator.com/other/password-entropy#what-is-password-entropy
 	# Take a reasonable amount of random data, "filter" them through the pool, then count what outs
@@ -117,6 +107,10 @@ function pw_entropy() {
 	local LENGTH="$1"
 	local pool="$2"
 	bc -l <<< "$LENGTH*l(${POOL_SIZE[$pool]})/l(2)"
+}
+function pw_length_given_entropy() {
+	local pool="$1"
+	bc -l <<< "${PW_HW_ENTROPY}*l(2)/l(${POOL_SIZE[$pool]})"
 }
 # Provide a stopwatch
 function stopwatch {
@@ -170,9 +164,9 @@ function print_pw() {
 		reset='reset'
 		local entropy; entropy="$(printf '%3.0f' "$(pw_entropy "$l" "$STRENGTH")")"
 		color='red'
-		if [ "$entropy" -ge 60 ] ; then
+		if [ "$entropy" -ge ${PW_HW_ENTROPY} ] ; then
 			color='green'
-		elif [ "$entropy" -ge 40 ] ; then
+		elif [ "$entropy" -ge ${PW_LW_ENTROPY} ] ; then
 			color='yellow'
 		fi
 		printf "${COLORS[$color]}%3d${COLORS[$reset]}%3d |  " "$entropy" "$l"
@@ -299,12 +293,30 @@ function work_triangle() {
 	done
 	disp d "Time taken: $(stopwatch stop)ms"
 }
+function check_param() {
+	SHAPE=${SHAPE:='square'}
+	if [ "$SHAPE" = 'random' ] ; then
+		s=$( bc <<< "$RANDOM % ${#SHAPES[*]}" )
+		SHAPE=${SHAPES[$s]}
+	fi
+	if ! [[ $LENGTH =~ ^[0-9]+$ ]] ; then
+		disp e "'$LENGTH' is not int" ; return 1
+	fi
+	if [ "$LENGTH" -le 0 ] ; then
+		echo 'Size does matter'
+		return 1
+	fi
+	if ! echo "${SHAPES[@]}" | grep -w -q "$SHAPE" ; then
+		disp e "Unknown shape '$SHAPE'"
+		return 1
+	fi
+}
 function usage() {
 	cat <<EOF
 
 /\ O Generate shaped random passwords + □
 
-$0 [ -e <rng engine> ] [ -a <shape> | -i <image file> ] [ -l ] [ -d | -v | -q ] [ -s ] [ -<how many you want> ] [ <password length> ]
+$0 [ -e <rng engine> ] [ -a <shape> | -i <image file> ] [ -l ] [ -d | -v | -q ] [ -s ] [ -<how many you want> ] [ <password length> | -k ]
 $0 [ -e <rng engine> ] [ -a <shape> | -i <image file> ] [ -l ] [ -d | -v | -q ] [ -s ] -f
 $0 -h
 
@@ -313,7 +325,8 @@ $0 -h
 -e  : rng engine: haveged(8), openssl(1) or (/dev/)random. Default is $RNG. Speed: openssl >= random >> haveged
 -f  : full screen height: compute as many password as your terminal's lines, and calculate length so that shape is respected
 -i  : image file you want the password to be shaped in. Disable -l
--l  : line prefix. Prepend each line with password entropy and length, and color password according to the entropy: red < 40 < yellow < 60 < green
+-k	: quick. Compute password length so that entropy is ${PW_HW_ENTROPY}
+-l  : line prefix. Prepend each line with password entropy and length, and color password according to the entropy: red < ${PW_LW_ENTROPY} < yellow < ${PW_HW_ENTROPY} < green
 -q  : quiet. Show only errors log level and hide password entropy and length
 -s  : generated passwords will include special chars
 -v  : verbose. Show info, warning and error log level
@@ -341,7 +354,7 @@ for i in "$@" ; do
 		N_PASS=${i#-}
 	fi
 done
-while getopts ":a:de:fhi:lqsv" opt ; do
+while getopts ":a:de:fhi:klqsv" opt ; do
 	case ${opt} in
 		a)	SHAPE="${OPTARG}";;
 		d)	LOG_LEVEL='3';;
@@ -349,6 +362,7 @@ while getopts ":a:de:fhi:lqsv" opt ; do
 		f)	FULL_HEIGHT='y';;
 		h)	usage; exit;;
 		i)	IMAGE="${OPTARG}" ; SHOW_LINE_PREFIX='';;
+		k)	QUICK='y';;
 		l)	[ -z "${IMAGE:-}" ] && SHOW_LINE_PREFIX='y';;
 		q)	LOG_LEVEL='0'; SHOW_LINE_PREFIX='';;
 		s)	STRENGTH='GRAPH';;
@@ -359,6 +373,14 @@ while getopts ":a:de:fhi:lqsv" opt ; do
 done
 shift $((OPTIND-1))
 LENGTH=${1:-}
+if ! preflight_check ; then
+	echo 'Preflight check failed'
+	exit ${E_CODES[preflight]}
+fi
+if [ -n "${QUICK:-}" ] ; then
+	printf -v LENGTH "%.0f" "$(pw_length_given_entropy $STRENGTH)"
+	((LENGTH++))
+fi
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 if [ -n "${SHAPE}" ] && [ -n "${IMAGE}" ] ; then
 		echo "Can't mix -a with -i"
@@ -366,7 +388,7 @@ if [ -n "${SHAPE}" ] && [ -n "${IMAGE}" ] ; then
 fi
 if [ -n "$FULL_HEIGHT" ] ; then
 	if [ -n "$N_PASS" ] || [ -n "$LENGTH" ] ; then
-		echo "Can't mix -f with -* or *"
+		echo "Can't mix -f with -* or * or -k"
 		exit ${E_CODES[preflight]}
 	else
 		N_PASS="$(( $(tput lines)-2))"
@@ -383,13 +405,9 @@ elif [ -n "$LENGTH" ] && [ -z "$N_PASS" ] ; then
 elif [ -z "$LENGTH" ] && [ -n "$N_PASS" ] ; then
 	LENGTH=${DEFAULT_LENGTH}
 fi # Number of pw and length are given
-SHAPE=${SHAPE:='square'}
-if [ "$SHAPE" = 'random' ] ; then
-	s=$( bc <<< "$RANDOM % ${#SHAPES[*]}" )
-	SHAPE=${SHAPES[$s]}
-fi
-if ! preflight_check ; then
-	echo 'Preflight check failed'
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+if ! check_param ; then
+	echo 'Parameters consistency check failed'
 	exit ${E_CODES[preflight]}
 fi
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
