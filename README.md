@@ -106,12 +106,13 @@ It uses ```openssl(1)``` by default, but can also use ```haveged(8)``` if availa
 
 ```spwgen(1)``` compute max 64 char length passwords without special chars, that should be strong enough for the next decade.
 
-You can specify lengthi, number, and more secure passwords:
+You can specify length, number, and more secure passwords:
 
 	$ ./spwgen 128		# 128 char long
 	$ ./spwgen -s		# give me some special chars
 	$ ./spwgen -s -12	# give me only 12, but secured
 	$ ./spwgen -f		# a full screen height of passwords
+	$ ./spwgen -k		# compute password size so that it's short BUT secure enough
 
 ## Shapes
 
