@@ -14,6 +14,7 @@ CACHE_DIR="$HOME/.cache/shaped-pwgen"
 declare -A POOL_SIZE POOL
 export ldd
 POOL[ALNUM]='a-zA-Z0-9'
+POOL[NUM]='0-9'
 POOL[GRAPH]='a-zA-Z0-9\41\42\43\44\45\46\47\50\51\52\53\54\55\56\57\72\73\74\75\76\77\100\133\134\135\136\137\140\173\174\175\176'
 STRENGTH='ALNUM'
 RNG='openssl'
@@ -320,8 +321,8 @@ function usage() {
 
 /\ O Generate shaped random passwords + □
 
-$0 [ -e <rng engine> ] [ -a <shape> | -i <image file> ] [ -l ] [ -d | -v | -q ] [ -s ] [ -<how many you want> ] [ <password length> | -k ]
-$0 [ -e <rng engine> ] [ -a <shape> | -i <image file> ] [ -l ] [ -d | -v | -q ] [ -s ] -f
+$0 [ -e <rng engine> ] [ -a <shape> | -i <image file> ] [ -l ] [ -d | -v | -q ] [ -s | -n ] [ -<how many you want> ] [ <password length> | -k ]
+$0 [ -e <rng engine> ] [ -a <shape> | -i <image file> ] [ -l ] [ -d | -v | -q ] [ -s | -n ] -f
 $0 -h
 
 -a  : shape to shape output in. square, triangle, circle, cross or random. Default is square
@@ -331,27 +332,31 @@ $0 -h
 -i  : image file you want the password to be shaped in. Disable -l
 -k  : quick. Compute password length so that entropy is just above ${PW_HW_ENTROPY}b
 -l  : line prefix. Prepend each line with password entropy and length, and color password according to the entropy: red < ${PW_LW_ENTROPY}b < yellow < ${PW_HW_ENTROPY}b < green
+-n  : numbers. Generate password that contain only char 0 to 9
 -q  : quiet. Show only errors log level and hide password entropy and length
--s  : generated passwords will include special chars
+-s  : string. Generated passwords will include special chars
 -v  : verbose. Show info, warning and error log level
 password length: (max) length of the generated passwords. Number of passwords vary accordingly to the shape. Default is $DEFAULT_LENGTH
 
 Examples:
 
 # Square shape, 64 char max
-	$ pwgen
+	$ spwgen
 
 # Same, but use haveged(8) as a random generator, if available
-	$ pwgen -e haveged
+	$ spwgen -e haveged
 
 # One password of 64 char length, with special chars
-	$ pwgen -a circle -q -1 -s
+	$ spwgen -a circle -q -1 -s
 
 # A cross full of passwords, 22 char length max, and showing entropy and password length on each line
-	$ pwgen -a cross -l 22
+	$ spwgen -a cross -l 22
 
 # Fairly strong password, not absurdly long
-	$ pwgen -k
+	$ spwgen -k
+
+# Same, but with numbers only
+	$ spwgen -kn
 
 EOF
 }
@@ -361,7 +366,7 @@ for i in "$@" ; do
 		N_PASS=${i#-}
 	fi
 done
-while getopts ":a:de:fhi:klqsv" opt ; do
+while getopts ":a:de:fhi:klnqsv" opt ; do
 	case ${opt} in
 		a)	SHAPE="${OPTARG}";;
 		d)	LOG_LEVEL='3';;
@@ -371,6 +376,7 @@ while getopts ":a:de:fhi:klqsv" opt ; do
 		i)	IMAGE="${OPTARG}" ; SHOW_LINE_PREFIX='';;
 		k)	QUICK='y';;
 		l)	[ -z "${IMAGE:-}" ] && SHOW_LINE_PREFIX='y';;
+		n)	STRENGTH='NUM';;
 		q)	LOG_LEVEL='0'; SHOW_LINE_PREFIX='';;
 		s)	STRENGTH='GRAPH';;
 		v)	LOG_LEVEL='2';;
