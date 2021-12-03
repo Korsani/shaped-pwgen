@@ -151,12 +151,13 @@ function generate_random() {
 function generate_openssl() {
 	local l="$1"
 	local h="${2:-$l}"
-	openssl rand $((10*l*h))
+	# get enough char so that I have a reasonable chance to have enough chars that will match the pool
+	openssl rand $((2*256*l*h/${POOL_SIZE[$STRENGTH]}))
 }
 function generate_haveged() {
 	local l="$1"
 	local h="${2:-$l}"
-	"${HAVEGED}" -n $((10*l*h)) -f - 2>/dev/null
+	"${HAVEGED}" -n $((2*256*l*h/${POOL_SIZE[$STRENGTH]})) -f - 2>/dev/null
 }
 # Display a password with some prefix
 function print_pw() {
