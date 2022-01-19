@@ -114,6 +114,7 @@ You can specify length, number, and more (or less) secure passwords:
 	$ ./spwgen -s -12	# give me only 12, but secured
 	$ ./spwgen -f		# a full screen height of passwords
 	$ ./spwgen -k		# compute password size so that it's short BUT secure enough
+	$ ./spwgen -x		# password will be hexa only
 
 Password is considered weak if entropy is < 40 bits, and strong if entropy > 60 bits. This may (will) vary...
 
