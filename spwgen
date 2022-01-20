@@ -339,7 +339,7 @@ $0 -h
 -q  : quiet. Show only errors log level and hide password entropy and length
 -s  : secure. Generated passwords will include special chars
 -v  : verbose. Show info, warning and error log level
--h  : hexa. Generate passwords that will contain char a to f and 0-9
+-x  : hexa. Generate passwords that will contain char a to f and 0-9
 password length: (max) length of the generated passwords. Number of passwords vary accordingly to the shape. Default is $DEFAULT_LENGTH
 
 Examples:
