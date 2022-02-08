@@ -370,12 +370,7 @@ if ! preflight_check ; then
 	exit ${E_CODES[preflight]}
 fi
 if [ -n "${QUICK}" ] ; then
-	if [ -n "${MODE}" ] ; then
-		echo "Can't mix -k with -m"
-		exit ${E_CODES[preflight]}
-	else
-		LENGTH="$(pw_length_given_entropy $STRENGTH)"
-	fi
+	LENGTH="$(pw_length_given_entropy $STRENGTH)"
 fi
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 if [ -n "${SHAPE}" ] && [ -n "${IMAGE}" ] ; then
