@@ -12,7 +12,6 @@ CACHE_DIR="$HOME/.cache/shaped-pwgen"
 # classe de chars dans laquelle tailler
 # et parce que sous MacOS la classe [:graph:] renvoie des bêtises
 declare -A POOL_SIZE POOL
-export ldd
 POOL[ALNUM]='a-zA-Z0-9'
 POOL[NUM]='0-9'
 POOL[HEX]='0-9a-f'
@@ -38,16 +37,6 @@ for s in "${!LOG_LEVELS[@]}" ; do
 done
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-function is_terminfo() { 	# MacOS, Linux, Cygwin
-	# If I use ldd | grep, sometimes it fails, duno why...
-	local t; t="$(mktemp)"
-	$ldd /usr/bin/tput > "$t"
-	grep -Eq 'libtinfo|cygncursesw|libncurses\.' "$t"
-	rm -f "$t"
-}
-function is_termcap() {		# FreeBSD
-	$ldd /usr/bin/tput | grep -Eq 'libncursesw'
-}
 function disp() {
 	local level="${1^^}"
 	local msg="${2:-}"
@@ -82,25 +71,10 @@ function preflight_check() {
 		POOL_SIZE[$pool]="$($tr -cd "${POOL[$pool]}" < /dev/urandom | fold -w 1 | head -1000 | sort -u | wc -l | xargs)"
 	done
 	mkdir -p "${CACHE_DIR}"
-	if [ "$(uname)" == "Darwin" ] ; then
-		ldd="otool -L"
-	else
-		ldd="/usr/bin/ldd"
-	fi
-	if is_terminfo ; then
-		af="setaf"
-		re="sgr0"
-	elif is_termcap ; then
-		af="AF"
-		re="me"
-	else
-		disp e "Neither termcap nor terminfo ??"
-		return 1
-	fi
-	COLORS[yellow]="$(tput $af 3)"
-	COLORS[red]="$(tput $af 1)"
-	COLORS[green]="$(tput $af 2)"
-	COLORS[reset]="$(tput $re)"
+	COLORS[yellow]="\e[1;33m"
+	COLORS[red]="\e[1;31m"
+	COLORS[green]="\e[1;32m"
+	COLORS[reset]="\e[0m"
 	COLORS[void]=''
 	return 0
 }
@@ -179,7 +153,7 @@ function print_pw() {
 		fi
 		printf "${COLORS[$color]}%3d${COLORS[$reset]}%3d |  " "$entropy" "$l"
 	fi
-	printf '%s\n' "${COLORS[$color]}${p}${COLORS[$reset]}"
+	printf "${COLORS[$color]}%s${COLORS[$reset]}\n" "${p}"
 }
 # Wrapper to the shapper functions
 function work() {
@@ -364,13 +338,13 @@ Examples:
 
 EOF
 }
-N_PASS='' ; FULL_HEIGHT='' ; IMAGE='' ; SHAPE='' ; SHOW_LINE_PREFIX=''
+N_PASS='' ; FULL_HEIGHT='' ; IMAGE='' ; SHAPE='' ; SHOW_LINE_PREFIX='' ; QUICK=''
 for i in "$@" ; do
 	if [[ $i =~ ^-[0-9]+$ ]] ; then
 		N_PASS=${i#-}
 	fi
 done
-while getopts ":a:de:fhi:klnqsvx" opt ; do
+while getopts ":a:de:fhi:klm:nqsvx" opt ; do
 	case ${opt} in
 		a)	SHAPE="${OPTARG}";;
 		d)	LOG_LEVEL='3';;
@@ -395,8 +369,13 @@ if ! preflight_check ; then
 	echo 'Preflight check failed'
 	exit ${E_CODES[preflight]}
 fi
-if [ -n "${QUICK:-}" ] ; then
-	LENGTH="$(pw_length_given_entropy $STRENGTH)"
+if [ -n "${QUICK}" ] ; then
+	if [ -n "${MODE}" ] ; then
+		echo "Can't mix -k with -m"
+		exit ${E_CODES[preflight]}
+	else
+		LENGTH="$(pw_length_given_entropy $STRENGTH)"
+	fi
 fi
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 if [ -n "${SHAPE}" ] && [ -n "${IMAGE}" ] ; then
