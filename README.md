@@ -168,7 +168,14 @@ If image is provided by ```-i```, ```spwgen(1)``` will shaped passwords accordin
 	$ ./spwgen -v		# Be verbose
 	$ ./spwgen -d		# Be more verbose
 
-## Caveats
+## Examples
+
+	$ ./spwgen -n 4                                                                     # Create 4-digit pin
+	$ ./spwgen 10 | tr '[a-z]' '[A-Z]' | sed -e 's/\(....\)\(...\)\(...\)/\1-\2-\3/'    # Create neosurf codes
+	$ ./spwgen -n 16 -1 | fold -w 4 | xargs                                             # Create paysafecard codes
+	$ ./spwgen -n 9 | while read n ; do echo "0$((6+RANDOM/16384))$n" ; done            # Create french mobile phone numbes
+
+# Caveats
 
 - Shapes rendering speed can be improved
 
