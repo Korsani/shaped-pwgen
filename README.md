@@ -57,7 +57,7 @@ USxfnqcXZw5U33PAg2dUeaLsDPvfvmCZ8Xogob177Av3qbYYgl8GyKCK7K0Cu4L5
 AWqiomKzZCNa3382M6uwiPu0WFoRjWfl1xMqFhfZvycUNZvULRYyzNNDYvkWpsAA
 
 $ ./spwgen -a circle -l -s
-0.0   0 |                                  
+  0   0 |                                  
 157  24 |                      E)9UFz3d(eZmJ$+)'NbEY"$s
 209  32 |                  WC_%SZ:d;M1s[Jw{V]-seF(mZ9+x[f_i
 249  38 |               &W6."9(6C|&!B%Cfa=sgFGuWbDUQ,]!K2(vGaz
@@ -202,6 +202,7 @@ Give ```./spwgen -li cthulhu.png``` a try ;)
 # Caveats
 
 - Shapes rendering speed can be improved
+- Especially when using -l
 
 # Made with
 
