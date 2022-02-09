@@ -115,9 +115,7 @@ function stopwatch {
 }
 # Wrapper to the other RNG functions
 function generate() {
-	local RNG="$1"
-	local l="$2"
-	local h="${3:-$l}"
+	local RNG="$1" ; local l="$2" ; local h="${3:-$l}"
 	disp i "Calling RNG: $RNG"
 	( eval generate_"$RNG" "$l" "$h" | $tr -cd "${POOL[$STRENGTH]}" | fold -w "${l}" ) | head -"${h}"
 }
@@ -125,51 +123,70 @@ function generate_random() {
 	cat /dev/random
 }
 function generate_openssl() {
-	local l="$1"
-	local h="${2:-$l}"
+	local l="$1" ; local h="${2:-$l}"
 	# get enough char so that I have a reasonable chance to have enough chars that will match the pool
 	openssl rand $((2*256*l*h/${POOL_SIZE[$STRENGTH]}))
 }
 function generate_haveged() {
-	local l="$1"
-	local h="${2:-$l}"
+	local l="$1" ; local h="${2:-$l}"
 	"${HAVEGED}" -n $((2*256*l*h/${POOL_SIZE[$STRENGTH]})) -f - 2>/dev/null
 }
-# Display a password with some prefix
+# Return a color according to entropy
+# get_entropy_color <entropy>
+function get_entropy_color() {
+	local e="$1"
+	color='red'
+	if [ "$e" -ge ${PW_HW_ENTROPY} ] ; then
+		color='green'
+	elif [ "$e" -ge ${PW_LW_ENTROPY} ] ; then
+		color='yellow'
+	fi
+	echo "$color"
+}
+# Display a password (with line prefix)
+# print_pw <string> <length of password>
 function print_pw() {
-	# Eventually... l is superfluous as it can be deduced by ${#p}
-	# But since upstream has it, why calculating it...
 	local p="$1" ; local l="$2"
 	# Default: show nothing, not even escape sequence
 	local color='void'
 	local reset='void'
 	if [ -n "$SHOW_LINE_PREFIX" ] ; then
 		reset='reset'
-		for s in $p ; do
-			entropy="$(printf '%3.0f' "$(pw_entropy "${#s}" "$STRENGTH")")"
-			color='red'
-			if [ "$entropy" -ge ${PW_HW_ENTROPY} ] ; then
-				color='green'
-			elif [ "$entropy" -ge ${PW_LW_ENTROPY} ] ; then
-				color='yellow'
-			fi
-			printf -v sc "${COLORS[$color]}%s${COLORS[$reset]}" "$s"
-			p=$(echo -n "$p" | sed -Ee "s/\b$s\b/$sc/")
-		done
+		# Display line prefix if there is no image
 		if [ -z "$IMAGE" ] ; then
-			if [ "$l" -ne 0 ] ; then 
-				entropy="$(printf '%3.0f' "$(pw_entropy "$l" "$STRENGTH")")"
-				color='red'
-				if [ "$entropy" -ge ${PW_HW_ENTROPY} ] ; then
-					color='green'
-				elif [ "$entropy" -ge ${PW_LW_ENTROPY} ] ; then
-					color='yellow'
-				fi
+			entropy="$(printf '%3.0f' "$(pw_entropy "$l" "$STRENGTH")")"
+			color=$(get_entropy_color "$entropy")
+			printf "${COLORS[$color]}%3d${COLORS[$reset]}%3d |  ${COLORS[$color]}%s${COLORS[$reset]}\n" "$entropy" "$l" "$p"
+		else		# If it's an image, it's a bit more tricky...
+			local s ; local cleaned ; local spaces
+			# I have to avoid sed for replacing group of char by the same, but colored
+			# as sed will be lost with the escape codes, as they contains standard chars
+			# SO, I will rebuild the string:
+			# - I will count how many spaces there is before each group of char
+			# - and concatenate that number of spaces with the colored group of char
+			# ~~~~~~~~~~~~~~~~
+			# "Negate" image: char become spaces, spaces become sharp
+			cleaned="$(echo "$p" | tr "${POOL[$STRENGTH]}" '#' | tr ' #' '# ')"
+			# If it begins with anything else than a sharp/space, then... there is 0 spaces at the begining of the string
+			if ! [ "${cleaned:0:1}" = '#' ] ; then
+				spaces=(0)
 			fi
-			printf "${COLORS[$color]}%3d${COLORS[$reset]}%3d |  " "$entropy" "$l"
+			# Build a list of the number of sharp/spaces between each group of char
+			for space in $cleaned ; do
+				spaces+=(${#space})
+			done
+			local np ; local n=0
+			for s in $p ; do
+				entropy="$(printf '%3.0f' "$(pw_entropy "${#s}" "$STRENGTH")")"
+				color=$(get_entropy_color "$entropy")
+				printf "%*s${COLORS[$color]}%s${COLORS[$reset]}" "${spaces[$n]}" '' "$s"
+				n=$((n+1))
+			done
+			echo
 		fi
+	else
+		echo "$p"
 	fi
-	printf "%b\n" "$p"
 }
 # Wrapper to the shapper functions
 function work() {
@@ -266,8 +283,7 @@ function work_circle() {
 }
 function work_triangle() {
 	local rng="$1" ; local l="$2" ; local h="$3"
-	local x=1
-	local n=1
+	local x=1 ; local n=1
 	# Generate a string full of spaces
 	local spaces ; spaces="$(head -c "$l" < /dev/zero | tr '\0' ' ')"
 	stopwatch start
@@ -311,7 +327,7 @@ $0 -h
 -f  : full screen height: compute as many password as your terminal's lines, and calculate length so that shape is respected
 -i  : image file you want the password to be shaped in. Disable -l
 -k  : quick. Compute password length so that entropy is just above ${PW_HW_ENTROPY}b
--l  : line prefix. Prepend each line with password entropy and length, and color password according to the entropy: red < ${PW_LW_ENTROPY}b < yellow < ${PW_HW_ENTROPY}b < green
+-l  : line prefix. Prepend each line with password entropy and length (if not -i), and color password according to the entropy: red < ${PW_LW_ENTROPY}b < yellow < ${PW_HW_ENTROPY}b < green
 -n  : numbers. Generate password that contains only char 0 to 9
 -q  : quiet. Show only errors log level and hide password entropy and length
 -s  : secure. Generated passwords will include special chars
@@ -338,6 +354,9 @@ Examples:
 
 # Same, but with numbers only
 	$ spwgen -kn
+
+# Display a colored numbered fish
+	$ spweng -lni img/fish.png
 
 EOF
 }

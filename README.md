@@ -109,7 +109,7 @@ It uses ```openssl(1)``` by default, but can also use ```haveged(8)``` if availa
 You can specify length, number, and more (or less) secure passwords:
 
 	$ ./spwgen 128		# 128 char long
-	$ ./spwgen -n 128	# same, but password contain only char 0 to 9
+	$ ./spwgen -n 128	# same, but password contain only numbers 0 to 9
 	$ ./spwgen -s		# give me some special chars
 	$ ./spwgen -s -12	# give me only 12, but secured
 	$ ./spwgen -f		# a full screen height of passwords
@@ -148,7 +148,7 @@ A 9 char length (59 bit entropy) password generated with ```spwgen -1 -s 9```` t
 If image is provided by ```-i```, ```spwgen(1)``` will shaped passwords accordingly (provided ImageMagick is installed):
 
 ```
-·0·> ./spwgen -i cthulhu.png
+$ ./spwgen -i cthulhu.png
 
                              jDLM3
                      tCgrKc83gnExQuL9EinEfs
@@ -182,6 +182,9 @@ If image is provided by ```-i```, ```spwgen(1)``` will shaped passwords accordin
                               3MjBa
 
 ```
+
+Give ```./spwgen -li cthulhu.png``` a try ;)
+
 
 ## Misc
 
