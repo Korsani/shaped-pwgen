@@ -118,6 +118,27 @@ You can specify length, number, and more (or less) secure passwords:
 
 Password is considered weak if entropy is < 40 bits, and strong if entropy > 60 bits. This may (will) vary...
 
+### Stats
+
+A 10 char length (60 bit entropy) password generated with ```spwgen -1 10```` take, with ```hashcat(1)``` 6.2.5 (```hashcat -O -a 3 -m <type> --custom-charset1='?l?u?d' <file> '?1?1?1?1?1?1?1?1?1?1'```):
+
+| device                       | hashcat | OS             |  hash     | time
+|:----------------------------:|:--------|:------------ --|:----------|:------
+|Intel Core i5 i5-8265U 1.6GHz | 6.2.5   | Windows        | md5       | 86y
+|Intel Core i5 i5-8265U 1.6GHz | 6.2.5   | Windows        | sha1      | 200y
+|Intel Core i5 i5-8265U 1.6GHz | 6.2.5   | Windows        | sha256    | 500y
+|Intel Core i5 i5-8265U 1.6GHz | 6.2.5   | Windows        | whirlpool | next big bang
+
+A 9 char length (59 bit entropy) password generated with ```spwgen -1 -s 9```` take, with ```hashcat(1)``` 6.2.5 (```hashcat -O -a 3 -m <type> --custom-charset1='?l?u?d?s' <file> '?1?1?1?1?1?1?1?1?1'```):
+
+| device                       | hashcat | OS             |  hash     | time
+|:----------------------------:|:--------|:------------ --|:----------|:------
+| RPi4                         | 6.1.1   | Linux Raspbian | md5       | 1133y
+|Intel Core i5 i5-8265U 1.6GHz | 6.2.5   | Windows        | md5       | 40y
+|Intel Core i5 i5-8265U 1.6GHz | 6.2.5   | Windows        | sha1      | 160y
+|Intel Core i5 i5-8265U 1.6GHz | 6.2.5   | Windows        | sha2      | 390y
+|Intel Core i5 i5-8265U 1.6GHz | 6.2.5   | Windows        | whirlpool | next big bang
+
 ## Shapes
 
 ```spwgen(1)``` display your passwords in square, circle, cross or triangle. Default is to pick a random one among them.
