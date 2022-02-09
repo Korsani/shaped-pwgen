@@ -137,30 +137,43 @@ function generate_haveged() {
 }
 # Display a password with some prefix
 function print_pw() {
-	local p="$1"
-	local l="$2"
+	# Eventually... l is superfluous as it can be deduced by ${#p}
+	# But since upstream has it, why calculating it...
+	local p="$1" ; local l="$2"
 	# Default: show nothing, not even escape sequence
 	local color='void'
 	local reset='void'
 	if [ -n "$SHOW_LINE_PREFIX" ] ; then
 		reset='reset'
-		local entropy; entropy="$(printf '%3.0f' "$(pw_entropy "$l" "$STRENGTH")")"
-		color='red'
-		if [ "$entropy" -ge ${PW_HW_ENTROPY} ] ; then
-			color='green'
-		elif [ "$entropy" -ge ${PW_LW_ENTROPY} ] ; then
-			color='yellow'
+		for s in $p ; do
+			entropy="$(printf '%3.0f' "$(pw_entropy "${#s}" "$STRENGTH")")"
+			color='red'
+			if [ "$entropy" -ge ${PW_HW_ENTROPY} ] ; then
+				color='green'
+			elif [ "$entropy" -ge ${PW_LW_ENTROPY} ] ; then
+				color='yellow'
+			fi
+			printf -v sc "${COLORS[$color]}%s${COLORS[$reset]}" "$s"
+			p=$(echo -n "$p" | sed -Ee "s/\b$s\b/$sc/")
+		done
+		if [ -z "$IMAGE" ] ; then
+			if [ "$l" -ne 0 ] ; then 
+				entropy="$(printf '%3.0f' "$(pw_entropy "$l" "$STRENGTH")")"
+				color='red'
+				if [ "$entropy" -ge ${PW_HW_ENTROPY} ] ; then
+					color='green'
+				elif [ "$entropy" -ge ${PW_LW_ENTROPY} ] ; then
+					color='yellow'
+				fi
+			fi
+			printf "${COLORS[$color]}%3d${COLORS[$reset]}%3d |  " "$entropy" "$l"
 		fi
-		printf "${COLORS[$color]}%3d${COLORS[$reset]}%3d |  " "$entropy" "$l"
 	fi
-	printf "${COLORS[$color]}%s${COLORS[$reset]}\n" "${p}"
+	printf "%b\n" "$p"
 }
 # Wrapper to the shapper functions
 function work() {
-	local RNG="$1"
-	local shape="$2"
-	local l="${3:-}"
-	local h="${4:-}"
+	local RNG="$1" ; local shape="$2" ; local l="${3:-}" ; local h="${4:-}"
 	case $shape in
 		square)		work_square "$RNG" "$l" "$h";;
 		triangle)	work_triangle "$RNG" "$l" "$h";;
@@ -188,11 +201,7 @@ function work() {
 	return 0
 }
 function work_xpm() {
-	local rng="$1"
-	local file="$2"
-	local l="$3"
-	local h="$4"
-	local t ; t="$(mktemp)"
+	local rng="$1" ; local file="$2" ; local l="$3" ; local h="$4" ; local t ; t="$(mktemp)"
 	local n=1
 	stopwatch start
 	# Generate a full square of passwords. I'll use it as a pochoir
@@ -219,9 +228,7 @@ function work_xpm() {
 	disp d "Time taken: $(stopwatch stop)ms"
 }
 function work_cross() {
-	local rng="$1"
-	local l="$2"
-	local h="$3"
+	local rng="$1" ; local l="$2" ; local h="$3"
 	local y=1
 	local spaces ; spaces="$(head -c "$l" < /dev/zero | tr '\0' ' ')"
 	stopwatch start
@@ -238,9 +245,7 @@ function work_cross() {
 	disp d "Time taken: $(stopwatch stop)ms"
 }
 function work_square() {
-	local rng="$1"
-	local l="$2"
-	local h="$3"
+	local rng="$1" ; local l="$2" ; local h="$3"
 	stopwatch start
 	generate "$rng" "$l" "$h" | while read -r p ; do
 		print_pw "$p" "$l"
@@ -248,9 +253,7 @@ function work_square() {
 	disp d "Time taken: $(stopwatch stop)ms"
 }
 function work_circle() {
-	local rng="$1"
-	local l="$2"
-	local h="$3"
+	local rng="$1" ; local l="$2" ; local h="$3"
 	local y ; y="$(bc <<< "$h/2")"
 	local spaces ; spaces="$(head -c "$l" < /dev/zero | tr '\0' ' ')"
 	stopwatch start
@@ -262,9 +265,7 @@ function work_circle() {
 	disp d "Time taken: $(stopwatch stop)ms"
 }
 function work_triangle() {
-	local rng="$1"
-	local l="$2"
-	local h="$3"
+	local rng="$1" ; local l="$2" ; local h="$3"
 	local x=1
 	local n=1
 	# Generate a string full of spaces
@@ -353,9 +354,10 @@ while getopts ":a:de:fhi:klm:nqsvx" opt ; do
 		e)	RNG="${OPTARG}";;
 		f)	FULL_HEIGHT='y';;
 		h)	usage; exit;;
-		i)	IMAGE="${OPTARG}" ; SHOW_LINE_PREFIX='';;
+		i)	IMAGE="${OPTARG}" ;;# SHOW_LINE_PREFIX='';;
 		k)	QUICK='y';;
-		l)	[ -z "${IMAGE:-}" ] && SHOW_LINE_PREFIX='y';;
+		#l)	[ -z "${IMAGE:-}" ] && SHOW_LINE_PREFIX='y';;
+		l)	SHOW_LINE_PREFIX='y';;
 		n)	STRENGTH='NUM';;
 		q)	LOG_LEVEL='0'; SHOW_LINE_PREFIX='';;
 		s)	STRENGTH='GRAPH';;
