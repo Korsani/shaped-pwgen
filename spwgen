@@ -172,7 +172,7 @@ function work() {
 					disp e "convert(1) (of ImageMagick) not found"
 					exit ${E_CODES[preflight]}
 				fi
-				# md4 is faster, which can be important on rpi...
+				# md4 is faster, which can be important on RPi...
 				md4=$(openssl md4 -r "${shape}" | cut -d ' ' -f 1)
 				xpm="${CACHE_DIR}/${md4}-${LENGTH}x${N_PASS}.xpm"
 				if ! [ -s "$xpm" ] ; then
@@ -197,6 +197,8 @@ function work_xpm() {
 	stopwatch start
 	# Generate a full square of passwords. I'll use it as a pochoir
 	generate "$rng" "$l" "$h" > "$t"
+	local black ; black="$(grep 'black' "$file" | tr -d '"' | head -c 1)"
+	disp d "XPM black is '$black'"
 	# Take only dotted part of the xpm
 	awk '/pixels/{flag=1;next}/};/{flag=0}flag' "$file" | tr -d ',' | while read -r xpm_line ; do
 		# Take the nth password
@@ -204,7 +206,7 @@ function work_xpm() {
 		local p=''
 		# Parse each char of the xpm line. If it's a dot, print the correspondant char from the password
 		for i in $(seq 1 ${#xpm_line}) ; do
-			if [ "${xpm_line:$i:1}" = '.' ] ; then
+			if [ "${xpm_line:$i:1}" = "$black" ] ; then
 				p+="${r:$i:1}"
 			else
 				p+=' '
