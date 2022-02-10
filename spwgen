@@ -341,7 +341,11 @@ $0 -h
 -f  : full screen height: compute as many password as your terminal's lines, and calculate length so that shape is respected
 -i  : image file you want the password to be shaped in
 -k  : quick. Compute password length so that entropy is just above ${PW_HW_ENTROPY}b
+<<<<<<< HEAD
 -l  : line prefix. Prepend each line with password entropy and length (if not -i), and color password according to the entropy: $(color_me red red) < ${PW_LW_ENTROPY}b < $(color_me orange orange) < ${PW_MLW_ENTROPY}b < $(color_me yellow yellow) < ${PW_MHW_ENTROPY}b < $(color_me grellow "green/yellow") < ${PW_HW_ENTROPY}b < $(color_me green green)
+=======
+-l  : line prefix. Prepend each line with password entropy and length (if not -i), and color password according to the entropy: red < ${PW_LW_ENTROPY}b < orange < ${PW_MLW_ENTROPY}b < yellow < ${PW_MHW_ENTROPY}b < green/yellow < ${PW_HW_ENTROPY} < green
+>>>>>>> 27de1564594ed540b599b9ff99fc9c8818dc673b
 -n  : numbers. Generate password that contains only char 0 to 9
 -q  : quiet. Show only errors log level and hide password entropy and length
 -s  : secure. Generated passwords will include special chars
