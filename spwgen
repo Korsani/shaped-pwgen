@@ -176,11 +176,11 @@ function print_pw() {
 			printf "${COLORS[$color]}%3d${COLORS[$reset]}%3d |  ${COLORS[$color]}%s${COLORS[$reset]}\n" "$entropy" "$l" "$p"
 		else		# If it's an image, it's a bit more tricky...
 			local s n cleaned spaces as np color
-			# I have to avoid sed for replacing group of char by the same, but coloured
+			# I have to avoid sed for replacing group of char by the same, but colored
 			# as sed will be lost with the escape codes, as they contains standard chars
 			# SO, I will rebuild the string:
 			# - I will count how many spaces there is before each group of char
-			# - and concatenate that number of spaces with the coloured group of char
+			# - and concatenate that number of spaces with the colored group of char
 			# ~~~~~~~~~~~~~~~~
 			# "Negate" image: char become spaces, spaces become sharp
 			cleaned="$(tr "${POOL[$STRENGTH]}" '#' <<<"$p" | tr ' #' '# ')"
@@ -336,7 +336,7 @@ function check_param() {
 		return 1
 	fi
 }
-# Return a coloured string
+# Return a colored string
 # color_me <color> <string>
 function color_me() {
 	echo -ne "${COLORS[$1]}$2${COLORS[reset]}"
@@ -366,7 +366,7 @@ password length: (max) length of the generated passwords. Number of passwords va
 
 Examples:
 
-# Square shape, 64 char max
+# Square shape, 64 chars
 	$ spwgen
 
 # Same, but use haveged(8) as a random generator, if available
@@ -384,7 +384,7 @@ Examples:
 # Same, but with numbers only
 	$ spwgen -kn
 
-# Display a coloured numbered fish
+# Display a colored numbered fish
 	$ spweng -lni img/fish.png
 
 EOF

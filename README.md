@@ -93,7 +93,7 @@ $ spwgen -a circle -l -s
 
 The former generate a square of 64 char length passwords. As they contain no special chars, they should be easy to copy/paste.
 
-The latter generate max 64 char long password, circle shaped, with special chars. Each line is prepended by the entropy and password length, and coloured.
+The latter generate max 64 char long password, colored circle shaped, with special chars. Each line is prepended by the entropy and password length, and colored.
 
 ## RNG source
 
@@ -120,7 +120,7 @@ Password is considered weak if entropy is < 40 bits, and strong if entropy > 60 
 
 ### Stats
 
-A 10 char length (60 bit entropy) password generated with ```spwgen -1 10```` take, with ```hashcat(1)``` 6.2.5 (```hashcat -O -a 3 -m <type> --custom-charset1='?l?u?d' <file> '?1?1?1?1?1?1?1?1?1?1'```):
+A 10 char length (60 bits entropy) password generated with ```spwgen -1 10``` take, with ```hashcat(1)``` 6.2.5 (```hashcat -O -a 3 -m <type> --custom-charset1='?l?u?d' <file> '?1?1?1?1?1?1?1?1?1?1'```):
 
 | device                       | hashcat | OS             |  hash     | time
 |:----------------------------:|:--------|:---------------|:----------|:------
@@ -129,7 +129,7 @@ A 10 char length (60 bit entropy) password generated with ```spwgen -1 10```` ta
 |Intel Core i5 i5-8265U 1.6GHz | 6.2.5   | Windows        | sha256    | 500y
 |Intel Core i5 i5-8265U 1.6GHz | 6.2.5   | Windows        | whirlpool | next big bang
 
-A 9 char length (59 bit entropy) password generated with ```spwgen -1 -s 9```` take, with ```hashcat(1)``` 6.2.5 (```hashcat -O -a 3 -m <type> --custom-charset1='?l?u?d?s' <file> '?1?1?1?1?1?1?1?1?1'```):
+A 9 char length (59 bit entropy) password generated with ```spwgen -1 -s 9``` take, with ```hashcat(1)``` 6.2.5 (```hashcat -O -a 3 -m <type> --custom-charset1='?l?u?d?s' <file> '?1?1?1?1?1?1?1?1?1'```):
 
 | device                       | hashcat | OS             |  hash     | time
 |:----------------------------:|:--------|:---------------|:----------|:------
@@ -141,14 +141,14 @@ A 9 char length (59 bit entropy) password generated with ```spwgen -1 -s 9```` t
 
 ## Shapes
 
-```spwgen(1)``` display your passwords in square, circle, cross or triangle. Default is to pick a random one among them.
+```spwgen(1)``` display your passwords in square, circle, cross or triangle. Default square.
 	
 	$ spwgen -a circle 42 -s		# a circle shaped of 42 char long secured passwords
 
 If image is provided by ```-i```, ```spwgen(1)``` will shaped passwords accordingly (provided ImageMagick is installed):
 
 ```
-$ spwgen -i cthulhu.png
+$ spwgen -i img/cthulhu.png
 
                              jDLM3
                      tCgrKc83gnExQuL9EinEfs
@@ -213,7 +213,7 @@ $ spwgen -n -i img/fish.png
 
 ```
 
-Give ```spwgen -li cthulhu.png``` a try ;)
+Give ```spwgen -li img/cthulhu.png``` a try ;)
 
 ## Misc
 
