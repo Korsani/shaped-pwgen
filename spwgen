@@ -121,17 +121,20 @@ function stopwatch {
 }
 # Wrapper to the other RNG functions
 function generate() {
-	local RNG="$1" ; local l="$2" ; local h="${3:-$l}"
-	disp i "Calling RNG: $RNG"
+	local RNG="$1" ; local l="$2" ; local h="$3"
+	disp i "Calling RNG: $RNG $l $h"
 	( eval generate_"$RNG" "$l" "$h" | $tr -cd "${POOL[$STRENGTH]}" | fold -w "${l}" ) | head -"${h}"
 }
 function generate_random() {
 	cat /dev/random
 }
 function generate_openssl() {
-	local l="$1" ; local h="${2:-$l}"
+	local l="$1" ; local h="$2"
 	# get enough char so that I have a reasonable chance to have enough chars that will match the pool
-	openssl rand $((2*256*l*h/${POOL_SIZE[$STRENGTH]}))
+	local n=$((2*256*l*h/${POOL_SIZE[$STRENGTH]}))
+	disp d "size: $n"
+	openssl rand "$n"
+	#printf "%$((l*h))s" | tr ' ' '#'
 }
 function generate_haveged() {
 	local l="$1" ; local h="${2:-$l}"
@@ -169,7 +172,7 @@ function print_pw() {
 			color=$(get_entropy_color "$entropy")
 			printf "${COLORS[$color]}%3d${COLORS[$reset]}%3d |  ${COLORS[$color]}%s${COLORS[$reset]}\n" "$entropy" "$l" "$p"
 		else		# If it's an image, it's a bit more tricky...
-			local s ; local cleaned ; local spaces
+			local s ; local cleaned ; local spaces ; local as ; local np ; local entropy ; local color ; local n
 			# I have to avoid sed for replacing group of char by the same, but colored
 			# as sed will be lost with the escape codes, as they contains standard chars
 			# SO, I will rebuild the string:
@@ -177,7 +180,7 @@ function print_pw() {
 			# - and concatenate that number of spaces with the colored group of char
 			# ~~~~~~~~~~~~~~~~
 			# "Negate" image: char become spaces, spaces become sharp
-			cleaned="$(echo "$p" | tr "${POOL[$STRENGTH]}" '#' | tr ' #' '# ')"
+			cleaned="$(tr "${POOL[$STRENGTH]}" '#' <<<"$p" | tr ' #' '# ')"
 			# If it begins with anything else than a sharp/space, then... there is 0 spaces at the begining of the string
 			if ! [ "${cleaned:0:1}" = '#' ] ; then
 				spaces=(0)
@@ -186,12 +189,12 @@ function print_pw() {
 			for space in $cleaned ; do
 				spaces+=(${#space})
 			done
-			local np ; local n=0
-			for s in $p ; do
+			read -ra as <<<"$p"
+			for n in $(seq 0 $((${#as[*]}-1)) ) ; do
+				s="${as[$n]}"
 				entropy="$(printf '%3.0f' "$(pw_entropy "${#s}" "$STRENGTH")")"
 				color=$(get_entropy_color "$entropy")
-				printf "%*s${COLORS[$color]}%s${COLORS[$reset]}" "${spaces[$n]}" '' "$s"
-				n=$((n+1))
+				printf "%*s${COLORS[$color]}%s${COLORS[$reset]}" "${spaces[$((n-0))]}" '' "$s"
 			done
 			echo
 		fi
@@ -230,7 +233,7 @@ function work() {
 }
 function work_xpm() {
 	local rng="$1" ; local file="$2" ; local l="$3" ; local h="$4" ; local t ; t="$(mktemp)"
-	local n=1
+	local n=1;local p
 	stopwatch start
 	# Generate a full square of passwords. I'll use it as a pochoir
 	generate "$rng" "$l" "$h" > "$t"
@@ -240,9 +243,9 @@ function work_xpm() {
 	awk '/pixels/{flag=1;next}/};/{flag=0}flag' "$file" | tr -d ',' | while read -r xpm_line ; do
 		# Take the nth password
 		r="$(sed -n "${n}p" "$t")"
-		local p=''
+		p=''
 		# Parse each char of the xpm line. If it's a dot, print the correspondant char from the password
-		for i in $(seq 1 ${#xpm_line}) ; do
+		for i in $( seq 1 ${#xpm_line} ) ; do
 			if [ "${xpm_line:$i:1}" = "$black" ] ; then
 				p+="${r:$i:1}"
 			else
