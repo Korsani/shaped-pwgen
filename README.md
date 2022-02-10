@@ -22,7 +22,7 @@ And/or alias it by ```alias pwgen=spwgen```
 
 It's as simple as
 ```
-$ ./spwgen
+$ spwgen
 vgec1eYJqimtgtQ1u20h2bfqpcsTVtaFGnKdkVLUtxCSodwUZjOMcMpZIXE4A0F8
 8pXZ0Sbwp8fOZlAGplhWLuk1tQb6WBtQDLnR9QxK5hG1BVJaQRCZgr76LEm9OYO2
 fEs05F0gDk5DM0WUUfJgtAYM6bOepTD65WIHwan8xXp0eZTvlYlQI3053YbdMmic
@@ -56,7 +56,7 @@ A4AoIeSeZpbsOwantW7TV9q74yqKeVMKFVsHaRMzxKY8Hao9otoLhnAZWQs7izl1
 USxfnqcXZw5U33PAg2dUeaLsDPvfvmCZ8Xogob177Av3qbYYgl8GyKCK7K0Cu4L5
 AWqiomKzZCNa3382M6uwiPu0WFoRjWfl1xMqFhfZvycUNZvULRYyzNNDYvkWpsAA
 
-$ ./spwgen -a circle -l -s
+$ spwgen -a circle -l -s
   0   0 |                                  
 157  24 |                      E)9UFz3d(eZmJ$+)'NbEY"$s
 209  32 |                  WC_%SZ:d;M1s[Jw{V]-seF(mZ9+x[f_i
@@ -93,14 +93,14 @@ $ ./spwgen -a circle -l -s
 
 The former generate a square of 64 char length passwords. As they contain no special chars, they should be easy to copy/paste.
 
-The latter generate max 64 char long password, circle shaped, with special chars. Each line is prepended by the entropy and password length.
+The latter generate max 64 char long password, circle shaped, with special chars. Each line is prepended by the entropy and password length, and coloured.
 
 ## RNG source
 
 It uses ```openssl(1)``` by default, but can also use ```haveged(8)``` if available or ```/dev/random```.
 
-	$ ./spwgen -e haveged
-	$ ./spwgen -e random
+	$ spwgen -e haveged
+	$ spwgen -e random
 
 ## Password strength, length and number
 
@@ -108,13 +108,13 @@ It uses ```openssl(1)``` by default, but can also use ```haveged(8)``` if availa
 
 You can specify length, number, and more (or less) secure passwords:
 
-	$ ./spwgen 128		# 128 char long
-	$ ./spwgen -n 128	# same, but password contain only numbers 0 to 9
-	$ ./spwgen -s		# give me some special chars
-	$ ./spwgen -s -12	# give me only 12, but secured
-	$ ./spwgen -f		# a full screen height of passwords
-	$ ./spwgen -k		# compute password size so that it's short BUT secure enough
-	$ ./spwgen -x		# password will be hexa only
+	$ spwgen 128    # 128 char long
+	$ spwgen -n 128 # same, but password contain only numbers 0 to 9
+	$ spwgen -s     # give me some special chars
+	$ spwgen -s -12 # give me only 12, but secured
+	$ spwgen -f     # a full screen height of passwords
+	$ spwgen -k     # compute password size so that it's short BUT secure enough
+	$ spwgen -xk    # password will secure and hexa only
 
 Password is considered weak if entropy is < 40 bits, and strong if entropy > 60 bits. This may (will) vary...
 
@@ -123,7 +123,7 @@ Password is considered weak if entropy is < 40 bits, and strong if entropy > 60 
 A 10 char length (60 bit entropy) password generated with ```spwgen -1 10```` take, with ```hashcat(1)``` 6.2.5 (```hashcat -O -a 3 -m <type> --custom-charset1='?l?u?d' <file> '?1?1?1?1?1?1?1?1?1?1'```):
 
 | device                       | hashcat | OS             |  hash     | time
-|:----------------------------:|:--------|:------------ --|:----------|:------
+|:----------------------------:|:--------|:---------------|:----------|:------
 |Intel Core i5 i5-8265U 1.6GHz | 6.2.5   | Windows        | md5       | 86y
 |Intel Core i5 i5-8265U 1.6GHz | 6.2.5   | Windows        | sha1      | 200y
 |Intel Core i5 i5-8265U 1.6GHz | 6.2.5   | Windows        | sha256    | 500y
@@ -132,7 +132,7 @@ A 10 char length (60 bit entropy) password generated with ```spwgen -1 10```` ta
 A 9 char length (59 bit entropy) password generated with ```spwgen -1 -s 9```` take, with ```hashcat(1)``` 6.2.5 (```hashcat -O -a 3 -m <type> --custom-charset1='?l?u?d?s' <file> '?1?1?1?1?1?1?1?1?1'```):
 
 | device                       | hashcat | OS             |  hash     | time
-|:----------------------------:|:--------|:------------ --|:----------|:------
+|:----------------------------:|:--------|:---------------|:----------|:------
 | RPi4                         | 6.1.1   | Linux Raspbian | md5       | 1133y
 |Intel Core i5 i5-8265U 1.6GHz | 6.2.5   | Windows        | md5       | 40y
 |Intel Core i5 i5-8265U 1.6GHz | 6.2.5   | Windows        | sha1      | 160y
@@ -143,12 +143,12 @@ A 9 char length (59 bit entropy) password generated with ```spwgen -1 -s 9```` t
 
 ```spwgen(1)``` display your passwords in square, circle, cross or triangle. Default is to pick a random one among them.
 	
-	$ ./spwgen -a circle 42 -s		# a circle shaped of 42 char long secured passwords
+	$ spwgen -a circle 42 -s		# a circle shaped of 42 char long secured passwords
 
 If image is provided by ```-i```, ```spwgen(1)``` will shaped passwords accordingly (provided ImageMagick is installed):
 
 ```
-$ ./spwgen -i cthulhu.png
+$ spwgen -i cthulhu.png
 
                              jDLM3
                      tCgrKc83gnExQuL9EinEfs
@@ -183,26 +183,55 @@ $ ./spwgen -i cthulhu.png
 
 ```
 
-Give ```./spwgen -li cthulhu.png``` a try ;)
+Or a numbered fish:
 
+```
+$ spwgen -n -i img/fish.png
+
+                             5096
+                            48744598
+                            87969410744
+                            9356037934284
+                            5798195494787287229
+                        184378991549617033181179911
+  30067              430410065033337158125234755213213
+   8528153         50670154436929481053261037469926096411
+   3406350978    690978461970195375709842853332522805146250
+    2021155108503145058778347760770888085250312   6867778739
+     2971259517364091233988956494487898536698       7112779055
+     21862048748658614700013331830464789306818      687555468
+    80956560302003370858445776203892738437128834 99105146979
+   345730147     36349607988865704972677982673929028783352
+   2078514         2218974202759627603771099913088043557
+  16559              112864473085493247598287252513780
+                         91634089113894864285800166
+                            7178547719825591788
+                            6011852787381
+                            8544309591
+                            68879890
+                             062
+
+```
+
+Give ```spwgen -li cthulhu.png``` a try ;)
 
 ## Misc
 
-	$ ./spwgen -q		# Do not prepend lines by password length
-	$ ./spwgen -v		# Be verbose
-	$ ./spwgen -d		# Be more verbose
+	$ spwgen -q		# Do not prepend lines by password length
+	$ spwgen -v		# Be verbose
+	$ spwgen -d		# Be more verbose
 
 ## Examples
 
-	$ ./spwgen -n 4                                                                     # Create 4-digit pin
-	$ ./spwgen 10 | tr '[a-z]' '[A-Z]' | sed -e 's/\(....\)\(...\)\(...\)/\1-\2-\3/'    # Create neosurf codes
-	$ ./spwgen -n 16 -1 | fold -w 4 | xargs                                             # Create paysafecard codes
-	$ ./spwgen -n 9 | while read n ; do echo "0$((6+RANDOM/16384))$n" ; done            # Create french mobile phone numbers
+	$ spwgen -n 4                                                                     # Create 4-digit pin
+	$ spwgen 10 | tr '[a-z]' '[A-Z]' | sed -e 's/\(....\)\(...\)\(...\)/\1-\2-\3/'    # Create neosurf codes
+	$ spwgen -n 16 -1 | fold -w 4 | xargs                                             # Create paysafecard codes
+	$ spwgen -n 9 | while read n ; do echo "0$((6+RANDOM/16384))$n" ; done            # Create french mobile phone numbers
 
 # Caveats
 
 - Shapes rendering speed can be improved
-- Especially when using -l
+- Especially when using ```-l```
 
 # Made with
 

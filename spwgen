@@ -9,8 +9,8 @@ FONT_SIZE_RATIO='15/7'
 HAVEGED="/usr/sbin/haveged"
 LOG_LEVEL="1"
 CACHE_DIR="$HOME/.cache/shaped-pwgen"
-# classe de chars dans laquelle tailler
-# et parce que sous MacOS la classe [:graph:] renvoie des bêtises
+# char classes
+# on MacOS, [:graph:] classes returns dumbs stuff
 declare -A POOL_SIZE POOL
 POOL[ALNUM]='a-zA-Z0-9'
 POOL[NUM]='0-9'
@@ -49,15 +49,15 @@ COLORS[void]=''
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 function disp() {
-	local level="${1^^}"
-	local msg="${2:-}"
+	local level="${1^^}" msg="$2"
 	if [ "${LOG_LEVELS[${SHORT_LOG_LEVELS[$level]}]}" -gt "$LOG_LEVEL" ] ; then
 		return
 	fi
-	local pref;pref="$(date "+%Y-%m-%d %H:%M:%S")"
+	local pref="$(date "+%Y-%m-%d %H:%M:%S")"
 	printf '[%s][%s] %s\n' "$pref" "${SHORT_LOG_LEVELS[$level]}" "$msg" >&2
 }
 function preflight_check() {
+	local pool
 	if ! type -p bc >/dev/null ; then
 		disp e 'bc(1) not found' ; return 1
 	fi
@@ -85,11 +85,13 @@ function preflight_check() {
 	return 0
 }
 # Calculate the password entropy
+# pw_entropy <password length> <pool class>
 function pw_entropy() {
-	local LENGTH="$1"
-	local pool="$2"
+	local LENGTH="$1" pool="$2"
 	bc -l <<< "$LENGTH*l(${POOL_SIZE[$pool]})/l(2)"
 }
+# Return the min password length corresponding to the given entropy
+# pw_length_given_entropy <pool class>
 function pw_length_given_entropy() {
 	local pool="$1"
 	local s
@@ -100,12 +102,12 @@ function pw_length_given_entropy() {
 	echo "$s"
 }
 # Provide a stopwatch
+# stopwatch <stop|start>
 function stopwatch {
-	local opt; opt="$1"
+	local opt="$1" duration=''
 	if ! $date --version | grep -q GNU ; then
 		return 1
 	fi
-	local duration=''
 	case "$opt" in
 		start)	stopwatch_start="$($date +%s%N)";;
 		stop)
@@ -120,8 +122,9 @@ function stopwatch {
 	fi
 }
 # Wrapper to the other RNG functions
+# generate <rng engine> <width> <height>
 function generate() {
-	local RNG="$1" ; local l="$2" ; local h="$3"
+	local RNG="$1" l="$2" h="$3"
 	disp i "Calling RNG: $RNG $l $h"
 	( eval generate_"$RNG" "$l" "$h" | $tr -cd "${POOL[$STRENGTH]}" | fold -w "${l}" ) | head -"${h}"
 }
@@ -129,7 +132,7 @@ function generate_random() {
 	cat /dev/random
 }
 function generate_openssl() {
-	local l="$1" ; local h="$2"
+	local l="$1" h="$2"
 	# get enough char so that I have a reasonable chance to have enough chars that will match the pool
 	local n=$((2*256*l*h/${POOL_SIZE[$STRENGTH]}))
 	disp d "size: $n"
@@ -137,14 +140,14 @@ function generate_openssl() {
 	#printf "%$((l*h))s" | tr ' ' '#'
 }
 function generate_haveged() {
-	local l="$1" ; local h="${2:-$l}"
+	local l="$1" h="$2"
 	"${HAVEGED}" -n $((2*256*l*h/${POOL_SIZE[$STRENGTH]})) -f - 2>/dev/null
 }
 # Return a color according to entropy
 # get_entropy_color <entropy>
 function get_entropy_color() {
 	local e="$1"
-	color='red'
+	local color='red'
 	if [ "$e" -ge ${PW_HW_ENTROPY} ] ; then
 		color='green'
 	elif [ "$e" -ge ${PW_MHW_ENTROPY} ] ; then
@@ -160,10 +163,10 @@ function get_entropy_color() {
 # Display a password (with line prefix)
 # print_pw <string> <length of password>
 function print_pw() {
-	local p="$1" ; local l="$2"
+	local p="$1" l="$2"
+	local entropy
 	# Default: show nothing, not even escape sequence
-	local color='void'
-	local reset='void'
+	local color='void' reset='void'
 	if [ -n "$SHOW_LINE_PREFIX" ] ; then
 		reset='reset'
 		# Display line prefix if there is no image
@@ -172,12 +175,12 @@ function print_pw() {
 			color=$(get_entropy_color "$entropy")
 			printf "${COLORS[$color]}%3d${COLORS[$reset]}%3d |  ${COLORS[$color]}%s${COLORS[$reset]}\n" "$entropy" "$l" "$p"
 		else		# If it's an image, it's a bit more tricky...
-			local s ; local cleaned ; local spaces ; local as ; local np ; local entropy ; local color ; local n
-			# I have to avoid sed for replacing group of char by the same, but colored
+			local s n cleaned spaces as np color
+			# I have to avoid sed for replacing group of char by the same, but coloured
 			# as sed will be lost with the escape codes, as they contains standard chars
 			# SO, I will rebuild the string:
 			# - I will count how many spaces there is before each group of char
-			# - and concatenate that number of spaces with the colored group of char
+			# - and concatenate that number of spaces with the coloured group of char
 			# ~~~~~~~~~~~~~~~~
 			# "Negate" image: char become spaces, spaces become sharp
 			cleaned="$(tr "${POOL[$STRENGTH]}" '#' <<<"$p" | tr ' #' '# ')"
@@ -202,9 +205,10 @@ function print_pw() {
 		echo "$p"
 	fi
 }
-# Wrapper to the shapper functions
+# Wrapper to shaper functions
 function work() {
-	local RNG="$1" ; local shape="$2" ; local l="${3:-}" ; local h="${4:-}"
+	local RNG="$1" shape="$2" l="$3" h="$4"
+	local md4 xpm
 	case $shape in
 		square)		work_square "$RNG" "$l" "$h";;
 		triangle)	work_triangle "$RNG" "$l" "$h";;
@@ -232,19 +236,21 @@ function work() {
 	return 0
 }
 function work_xpm() {
-	local rng="$1" ; local file="$2" ; local l="$3" ; local h="$4" ; local t ; t="$(mktemp)"
-	local n=1;local p
+	local rng="$1" file="$2" l="$3" h="$4"
+	local i r t p black
+	local n=1
+	t="$(mktemp)"
 	stopwatch start
 	# Generate a full square of passwords. I'll use it as a pochoir
 	generate "$rng" "$l" "$h" > "$t"
-	local black ; black="$(grep 'black' "$file" | tr -d '"' | head -c 1)"
+	black="$(grep 'black' "$file" | tr -d '"' | head -c 1)"
 	disp d "XPM black is '$black'"
 	# Take only dotted part of the xpm
 	awk '/pixels/{flag=1;next}/};/{flag=0}flag' "$file" | tr -d ',' | while read -r xpm_line ; do
 		# Take the nth password
 		r="$(sed -n "${n}p" "$t")"
 		p=''
-		# Parse each char of the xpm line. If it's a dot, print the correspondant char from the password
+		# Parse each char of the xpm line. If it's black, print the correspondant char from the password
 		for i in $( seq 1 ${#xpm_line} ) ; do
 			if [ "${xpm_line:$i:1}" = "$black" ] ; then
 				p+="${r:$i:1}"
@@ -259,9 +265,10 @@ function work_xpm() {
 	disp d "Time taken: $(stopwatch stop)ms"
 }
 function work_cross() {
-	local rng="$1" ; local l="$2" ; local h="$3"
+	local rng="$1" l="$2" h="$3"
+	local p x
 	local y=1
-	local spaces ; spaces="$(head -c "$l" < /dev/zero | tr '\0' ' ')"
+	local spaces="$(head -c "$l" < /dev/zero | tr '\0' ' ')"
 	stopwatch start
 	generate "$rng" "$l" "$h" | while read -r p ; do
 		if [ "$y" -le $((h/3)) ] || [ "$y" -gt $(( 2*h/3 )) ] ; then
@@ -276,7 +283,8 @@ function work_cross() {
 	disp d "Time taken: $(stopwatch stop)ms"
 }
 function work_square() {
-	local rng="$1" ; local l="$2" ; local h="$3"
+	local rng="$1" l="$2" h="$3"
+	local p
 	stopwatch start
 	generate "$rng" "$l" "$h" | while read -r p ; do
 		print_pw "$p" "$l"
@@ -284,11 +292,12 @@ function work_square() {
 	disp d "Time taken: $(stopwatch stop)ms"
 }
 function work_circle() {
-	local rng="$1" ; local l="$2" ; local h="$3"
-	local y ; y="$(bc <<< "$h/2")"
-	local spaces ; spaces="$(head -c "$l" < /dev/zero | tr '\0' ' ')"
+	local rng="$1" l="$2" h="$3"
+	local p x
+	local y="$(bc <<< "$h/2")"
+	local spaces="$(head -c "$l" < /dev/zero | tr '\0' ' ')"
 	stopwatch start
-	generate "$RNG" "$l" "$h"	| while read -r p ; do
+	generate "$RNG" "$l" "$h" | while read -r p ; do
 		printf -v x '%.0f' "$(bc <<< "scale=2;$l*sqrt(1-($y/($h/2))^2)")"
 		print_pw "${spaces:0:$(( (l-x)/2 ))}${p:0:$x}" "$x"
 		((y--))
@@ -296,10 +305,11 @@ function work_circle() {
 	disp d "Time taken: $(stopwatch stop)ms"
 }
 function work_triangle() {
-	local rng="$1" ; local l="$2" ; local h="$3"
-	local x=1 ; local n=1
+	local rng="$1" l="$2" h="$3"
+	local p x
+	local x=1 n=1
 	# Generate a string full of spaces
-	local spaces ; spaces="$(head -c "$l" < /dev/zero | tr '\0' ' ')"
+	local spaces="$(head -c "$l" < /dev/zero | tr '\0' ' ')"
 	stopwatch start
 	generate "$rng" "$l" "$h" | while read -r p ; do
 		x=$((n*l/h))
@@ -326,6 +336,8 @@ function check_param() {
 		return 1
 	fi
 }
+# Return a coloured string
+# color_me <color> <string>
 function color_me() {
 	echo -ne "${COLORS[$1]}$2${COLORS[reset]}"
 }
@@ -372,7 +384,7 @@ Examples:
 # Same, but with numbers only
 	$ spwgen -kn
 
-# Display a colored numbered fish
+# Display a coloured numbered fish
 	$ spweng -lni img/fish.png
 
 EOF
