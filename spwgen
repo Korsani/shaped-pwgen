@@ -42,7 +42,7 @@ done
 COLORS[red]="\e[38;2;255;0;0m"
 COLORS[orange]="\e[38;2;255;127;0m"
 COLORS[yellow]="\e[38;2;255;255;0m"
-COLORS[grellow]="\e[38;2;199;255;0m"
+COLORS[grellow]="\e[38;2;178;255;0m"
 COLORS[green]="\e[38;2;0;255;0m"
 COLORS[reset]="\e[0m"
 COLORS[void]=''
