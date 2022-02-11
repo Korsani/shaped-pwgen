@@ -67,7 +67,7 @@ function preflight_check() {
 		haveged)
 			if ! [ -e "${HAVEGED}" ] ; then disp e 'haveged(8) not found' ; return 1 ; else disp d 'haveged(8) is present' ; fi
 			if ! "${HAVEGED}" -n 1 -f /dev/null 2>/dev/null ; then disp e "Can't use haveged(8)" ; return 1 ; else disp d 'haveged(8) is usable' ; fi
-		;;
+			;;
 		openssl)	if ! type -p $RNG >/dev/null ; then disp e 'openssl(1) not found (??)' ; return 1 ; else disp d 'openssl(1) found' ; fi;;
 		random)		if ! [ -c /dev/random ] ; then disp e '/dev/random not found or not a character device (??)' ; return 1 ; else disp d '/dev/random is usable'; fi;;
 		*)			disp e "Unknown RNG engine '$RNG'" ; return 1;;
@@ -159,7 +159,7 @@ function print_pw() {
 	local p="$1" l="$2"
 	# Default: show nothing, not even escape sequence
 	local color='void' reset='void'
-	local entropy s cleaned spaces as np entropy color n
+	local s n as entropy cleaned spaces entropy color
 	if [ -n "$SHOW_LINE_PREFIX" ] ; then
 		reset='reset'
 		# Display line prefix if there is no image
@@ -222,10 +222,10 @@ function work() {
 			else
 				disp e "Unreadable file $IMAGE"
 				exit ${E_CODES[preflight]}
-			fi;;
-	esac
-	return 0
-}
+				fi;;
+		esac
+		return 0
+	}
 # Return true if an option is set (through -o )
 # option_is_set <option>
 # As usual: https://stackoverflow.com/questions/8063228/check-if-a-variable-exists-in-a-list-in-bash
@@ -235,6 +235,7 @@ function option_is_set() {
 }
 function work_xpm() {
 	local rng="$1" file="$2" l="$3" h="$4"
+	# shellcheck disable=2155
 	local t="$(mktemp)" n=1
 	local p black
 	stopwatch start
@@ -248,73 +249,74 @@ function work_xpm() {
 	disp d "XPM black is '$black'"
 	# Take only dotted part of the xpm
 	awk '/pixels/{flag=1;next}/};/{flag=0}flag' "$file" | tr -d ',' | while read -r xpm_line ; do
-		# Take the nth password
-		r="$(sed -n "${n}p" "$t")"
-		p=''
-		# Parse each char of the xpm line. If it's a dot, print the correspondant char from the password
-		for i in $( seq 1 ${#xpm_line} ) ; do
-			if [ "${xpm_line:$i:1}" = "$black" ] ; then
-				p+="${r:$i:1}"
-			else
-				p+=' '
-			fi
-		done
-		print_pw "$p" "0"
-		((n++))
+	# Take the nth password
+	r="$(sed -n "${n}p" "$t")"
+	p=''
+	# Parse each char of the xpm line. If it's a dot, print the correspondant char from the password
+	for i in $( seq 1 ${#xpm_line} ) ; do
+		if [ "${xpm_line:$i:1}" = "$black" ] ; then
+			p+="${r:$i:1}"
+		else
+			p+=' '
+		fi
 	done
-	rm -f "$t"
-	disp d "Time taken: $(stopwatch stop)ms"
+	print_pw "$p" "0"
+	((n++))
+done
+rm -f "$t"
+disp d "Time taken: $(stopwatch stop)ms"
 }
 function work_cross() {
 	local rng="$1" l="$2" h="$3"
-	# shellcheck disable=SC2155
-	local y=1 spaces="$(head -c "$l" < /dev/zero | tr '\0' ' ')"
+	local y=1
 	local x p
 	stopwatch start
 	generate "$rng" "$l" "$h" | while read -r p ; do
-		if [ "$y" -le $((h/3)) ] || [ "$y" -gt $(( 2*h/3 )) ] ; then
-			x="$(( l/3 ))"
-			p="${spaces:0:$x}${p:0:$((l/3))}"
-			print_pw "$p" "$x"
-		else
-			print_pw "$p" "$l"
-		fi
-		((y++))
-	done
-	disp d "Time taken: $(stopwatch stop)ms"
+	if [ "$y" -le $((h/3)) ] || [ "$y" -gt $(( 2*h/3 )) ] ; then
+		x="$((l/3))"
+		printf -v p '%*s%s' "$x" '' "${p:0:$((l/3))}"
+		print_pw "$p" "$x"
+	else
+		print_pw "$p" "$l"
+	fi
+	((y++))
+done
+disp d "Time taken: $(stopwatch stop)ms"
 }
 function work_square() {
 	local rng="$1" l="$2" h="$3"
 	stopwatch start
 	generate "$rng" "$l" "$h" | while read -r p ; do
-		print_pw "$p" "$l"
-	done
-	disp d "Time taken: $(stopwatch stop)ms"
+	print_pw "$p" "$l"
+done
+disp d "Time taken: $(stopwatch stop)ms"
 }
 function work_circle() {
 	local rng="$1" l="$2" h="$3"
-	local y="$(bc <<< "$h/2")" spaces="$(head -c "$l" < /dev/zero | tr '\0' ' ')"
+	local y="$((h/2))"
 	local x
 	stopwatch start
 	generate "$RNG" "$l" "$h"	| while read -r p ; do
-		printf -v x '%.0f' "$(bc <<< "scale=2;$l*sqrt(1-($y/($h/2))^2)")"
-		print_pw "${spaces:0:$(( (l-x)/2 ))}${p:0:$x}" "$x"
-		((y--))
-	done
-	disp d "Time taken: $(stopwatch stop)ms"
+	printf -v x '%.0f' "$(bc <<< "scale=2;$l*sqrt(1-($y/($h/2))^2)")"
+	printf -v p '%*s%s' "$(( (l-x)/2 ))" '' "${p:0:$x}"
+	print_pw "$p" "$x"
+	((y--))
+done
+disp d "Time taken: $(stopwatch stop)ms"
 }
 function work_triangle() {
 	local rng="$1" l="$2" h="$3"
 	local x=1 n=1
+	local p
 	# Generate a string full of spaces
-	local spaces="$(head -c "$l" < /dev/zero | tr '\0' ' ')"
 	stopwatch start
 	generate "$rng" "$l" "$h" | while read -r p ; do
-		x=$((n*l/h))
-		print_pw "${spaces:0:$((1+(l-x)/2))}${p:0:$x}" "$x"
-		((n++))
-	done
-	disp d "Time taken: $(stopwatch stop)ms"
+	x=$((n*l/h))
+	printf -v p '%*s%s' "$((1+(l-x)/2))" '' "${p:0:$x}"
+	print_pw "$p" "$x"
+	((n++))
+done
+disp d "Time taken: $(stopwatch stop)ms"
 }
 function check_param() {
 	SHAPE=${SHAPE:='square'}
@@ -355,8 +357,8 @@ $0 -h
 -l  : line prefix. Prepend each line with password entropy and length (if not -i), and color password according to the entropy: $(color_me red red) < ${PW_LW_ENTROPY}b < $(color_me orange orange) < ${PW_MLW_ENTROPY}b < $(color_me yellow yellow) < ${PW_MHW_ENTROPY}b < $(color_me grellow "green/yellow") < ${PW_HW_ENTROPY}b < $(color_me green green)
 -n  : numbers. Generate password that contains only char 0 to 9
 -o  : options. Coma separated option list. Specific to switch.
-         -i :
-              invert : negate image
+        -i :
+             invert : negate image
 -q  : quiet. Show only errors log level and hide password entropy and length
 -s  : secure. Generated passwords will include special chars
 -v  : verbose. Show info, warning and error log level
@@ -366,25 +368,25 @@ password length: (max) length of the generated passwords. Number of passwords va
 Examples:
 
 # Square shape, 64 char max
-	$ spwgen
+    $ spwgen
 
 # Same, but use haveged(8) as a random generator, if available
-	$ spwgen -e haveged
+    $ spwgen -e haveged
 
 # One password of 64 char length, with special chars
-	$ spwgen -a circle -q -1 -s
+    $ spwgen -a circle -q -1 -s
 
 # A cross full of passwords, 22 char length max, and showing entropy and password length on each line
 	$ spwgen -a cross -l 22
 
 # Fairly strong password, not absurdly long
-	$ spwgen -k
+    $ spwgen -k
 
 # Same, but with numbers only
-	$ spwgen -kn
+    $ spwgen -kn
 
 # Display a colored numbered fish
-	$ spweng -lni img/fish.png
+    $ spwgen -lni img/fish.png
 
 EOF
 }
@@ -403,7 +405,6 @@ while getopts ":a:de:fhi:klm:no:qsvx" opt ; do
 		h)	usage; exit;;
 		i)	IMAGE="${OPTARG}" ;;# SHOW_LINE_PREFIX='';;
 		k)	QUICK='y';;
-		#l)	[ -z "${IMAGE:-}" ] && SHOW_LINE_PREFIX='y';;
 		l)	SHOW_LINE_PREFIX='y';;
 		n)	STRENGTH='NUM';;
 		o)	read -r -a OPTIONS<<<"${OPTARG//,/ }";;
@@ -427,8 +428,8 @@ if [ -n "${QUICK}" ] ; then
 fi
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 if [ -n "${SHAPE}" ] && [ -n "${IMAGE}" ] ; then
-		echo "Can't mix -a with -i"
-		exit ${E_CODES[preflight]}
+	echo "Can't mix -a with -i"
+	exit ${E_CODES[preflight]}
 fi
 if [ -n "$FULL_HEIGHT" ] ; then
 	if [ -n "$N_PASS" ] || [ -n "$LENGTH" ] ; then
@@ -438,14 +439,14 @@ if [ -n "$FULL_HEIGHT" ] ; then
 		N_PASS="$(( $(tput lines)-2))"
 		LENGTH=$( bc <<< "$N_PASS*$FONT_SIZE_RATIO" )
 	fi
-# Neither pw length nor number of pw are given
+	# Neither pw length nor number of pw are given
 elif [ -z "$LENGTH" ] && [ -z "$N_PASS" ] ; then
 	LENGTH=${DEFAULT_LENGTH}
 	N_PASS=$( bc <<< "$LENGTH/($FONT_SIZE_RATIO)" )
-# Pw length is given, calculate number of pw so that it's well shaped
+	# Pw length is given, calculate number of pw so that it's well shaped
 elif [ -n "$LENGTH" ] && [ -z "$N_PASS" ] ; then
 	N_PASS=$( bc <<< "$LENGTH/($FONT_SIZE_RATIO)" )
-# Number of pw is given, length is default length
+	# Number of pw is given, length is default length
 elif [ -z "$LENGTH" ] && [ -n "$N_PASS" ] ; then
 	LENGTH=${DEFAULT_LENGTH}
 fi # Number of pw and length are given
