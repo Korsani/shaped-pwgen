@@ -11,7 +11,8 @@ LOG_LEVEL="1"
 CACHE_DIR="$HOME/.cache/shaped-pwgen"
 # classe de chars dans laquelle tailler
 # et parce que sous MacOS la classe [:graph:] renvoie des bêtises
-declare -A POOL_SIZE POOL
+declare -A E_CODES COLORS LOG_LEVELS SHORT_LOG_LEVELS POOL_SIZE POOL
+declare -a OPTIONS
 POOL[ALNUM]='a-zA-Z0-9'
 POOL[NUM]='0-9'
 POOL[HEX]='0-9a-f'
@@ -24,17 +25,14 @@ PW_HW_ENTROPY=60		# Above this entropy it's fairly strong
 PW_MHW_ENTROPY=$(( PW_LW_ENTROPY+2*(PW_HW_ENTROPY-PW_LW_ENTROPY)/3 ))
 PW_MLW_ENTROPY=$(( PW_LW_ENTROPY+  (PW_HW_ENTROPY-PW_LW_ENTROPY)/3 ))
 SHAPES=('square' 'circle' 'triangle' 'cross')
-declare -A E_CODES COLORS
 E_CODES['shape']=1
 E_CODES['preflight']=2
 E_CODES['options']=3
 E_CODES['unknown']=255
-declare -A LOG_LEVELS
 LOG_LEVELS['DBG']=3
 LOG_LEVELS['INF']=2
 LOG_LEVELS['WRN']=1
 LOG_LEVELS['ERR']=0
-declare -A SHORT_LOG_LEVELS
 for s in "${!LOG_LEVELS[@]}" ; do
 	SHORT_LOG_LEVELS[${s:0:1}]="$s"
 done
@@ -49,8 +47,7 @@ COLORS[void]=''
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 function disp() {
-	local level="${1^^}"
-	local msg="${2:-}"
+	local level="${1^^}" msg="${2}"
 	if [ "${LOG_LEVELS[${SHORT_LOG_LEVELS[$level]}]}" -gt "$LOG_LEVEL" ] ; then
 		return
 	fi
@@ -86,9 +83,8 @@ function preflight_check() {
 }
 # Calculate the password entropy
 function pw_entropy() {
-	local LENGTH="$1"
-	local pool="$2"
-	bc -l <<< "$LENGTH*l(${POOL_SIZE[$pool]})/l(2)"
+	local length="$1" pool="$2"
+	bc -l <<< "$length*l(${POOL_SIZE[$pool]})/l(2)"
 }
 function pw_length_given_entropy() {
 	local pool="$1"
@@ -101,11 +97,10 @@ function pw_length_given_entropy() {
 }
 # Provide a stopwatch
 function stopwatch {
-	local opt; opt="$1"
+	local opt="$1" duration=''
 	if ! $date --version | grep -q GNU ; then
 		return 1
 	fi
-	local duration=''
 	case "$opt" in
 		start)	stopwatch_start="$($date +%s%N)";;
 		stop)
@@ -121,15 +116,15 @@ function stopwatch {
 }
 # Wrapper to the other RNG functions
 function generate() {
-	local RNG="$1" ; local l="$2" ; local h="$3"
-	disp i "Calling RNG: $RNG $l $h"
-	( eval generate_"$RNG" "$l" "$h" | $tr -cd "${POOL[$STRENGTH]}" | fold -w "${l}" ) | head -"${h}"
+	local rng="$1" l="$2" h="$3"
+	disp i "Calling RNG: $rng $l $h"
+	( eval generate_"$rng" "$l" "$h" | $tr -cd "${POOL[$STRENGTH]}" | fold -w "${l}" ) | head -"${h}"
 }
 function generate_random() {
 	cat /dev/random
 }
 function generate_openssl() {
-	local l="$1" ; local h="$2"
+	local l="$1" h="$2"
 	# get enough char so that I have a reasonable chance to have enough chars that will match the pool
 	local n=$((2*256*l*h/${POOL_SIZE[$STRENGTH]}))
 	disp d "size: $n"
@@ -137,13 +132,14 @@ function generate_openssl() {
 	#printf "%$((l*h))s" | tr ' ' '#'
 }
 function generate_haveged() {
-	local l="$1" ; local h="${2:-$l}"
+	local l="$1" h="${2}"
 	"${HAVEGED}" -n $((2*256*l*h/${POOL_SIZE[$STRENGTH]})) -f - 2>/dev/null
 }
 # Return a color according to entropy
 # get_entropy_color <entropy>
 function get_entropy_color() {
 	local e="$1"
+	local color
 	color='red'
 	if [ "$e" -ge ${PW_HW_ENTROPY} ] ; then
 		color='green'
@@ -160,10 +156,10 @@ function get_entropy_color() {
 # Display a password (with line prefix)
 # print_pw <string> <length of password>
 function print_pw() {
-	local p="$1" ; local l="$2"
+	local p="$1" l="$2"
 	# Default: show nothing, not even escape sequence
-	local color='void'
-	local reset='void'
+	local color='void' reset='void'
+	local entropy s cleaned spaces as np entropy color n
 	if [ -n "$SHOW_LINE_PREFIX" ] ; then
 		reset='reset'
 		# Display line prefix if there is no image
@@ -172,7 +168,6 @@ function print_pw() {
 			color=$(get_entropy_color "$entropy")
 			printf "${COLORS[$color]}%3d${COLORS[$reset]}%3d |  ${COLORS[$color]}%s${COLORS[$reset]}\n" "$entropy" "$l" "$p"
 		else		# If it's an image, it's a bit more tricky...
-			local s ; local cleaned ; local spaces ; local as ; local np ; local entropy ; local color ; local n
 			# I have to avoid sed for replacing group of char by the same, but colored
 			# as sed will be lost with the escape codes, as they contains standard chars
 			# SO, I will rebuild the string:
@@ -204,12 +199,12 @@ function print_pw() {
 }
 # Wrapper to the shapper functions
 function work() {
-	local RNG="$1" ; local shape="$2" ; local l="${3:-}" ; local h="${4:-}"
+	local rng="$1" shape="$2" l="$3" h="$4"
 	case $shape in
-		square)		work_square "$RNG" "$l" "$h";;
-		triangle)	work_triangle "$RNG" "$l" "$h";;
-		circle)		work_circle "$RNG" "$l" "$h";;
-		cross)		work_cross "$RNG" "$l" "$h";;
+		square)		work_square "$rng" "$l" "$h";;
+		triangle)	work_triangle "$rng" "$l" "$h";;
+		circle)		work_circle "$rng" "$l" "$h";;
+		cross)		work_cross "$rng" "$l" "$h";;
 		*)
 			if [ -r "$shape" ] ; then
 				if ! type -p convert >/dev/null ; then
@@ -223,7 +218,7 @@ function work() {
 					disp i "Converting $shape to xpm"
 					convert "${shape}" -scale "${LENGTH}!x${N_PASS}!" -monochrome "$xpm"
 				fi
-				work_xpm "$RNG" "${xpm}" "$l" "$h"
+				work_xpm "$rng" "${xpm}" "$l" "$h"
 			else
 				disp e "Unreadable file $IMAGE"
 				exit ${E_CODES[preflight]}
@@ -231,13 +226,25 @@ function work() {
 	esac
 	return 0
 }
+# Return true if an option is set (through -o )
+# option_is_set <option>
+# As usual: https://stackoverflow.com/questions/8063228/check-if-a-variable-exists-in-a-list-in-bash
+function option_is_set() {
+	local o="$1"
+	[[ "${OPTIONS[*]} " =~ (^|[[:space:]])$o($|[[:space:]]) ]]
+}
 function work_xpm() {
-	local rng="$1" ; local file="$2" ; local l="$3" ; local h="$4" ; local t ; t="$(mktemp)"
-	local n=1;local p
+	local rng="$1" file="$2" l="$3" h="$4"
+	local t="$(mktemp)" n=1
+	local p black
 	stopwatch start
 	# Generate a full square of passwords. I'll use it as a pochoir
 	generate "$rng" "$l" "$h" > "$t"
-	local black ; black="$(grep 'black' "$file" | tr -d '"' | head -c 1)"
+	if option_is_set "invert" ; then
+		black="$(grep 'white' "$file" | tr -d '"' | head -c 1)"
+	else
+		black="$(grep 'black' "$file" | tr -d '"' | head -c 1)"
+	fi
 	disp d "XPM black is '$black'"
 	# Take only dotted part of the xpm
 	awk '/pixels/{flag=1;next}/};/{flag=0}flag' "$file" | tr -d ',' | while read -r xpm_line ; do
@@ -259,9 +266,10 @@ function work_xpm() {
 	disp d "Time taken: $(stopwatch stop)ms"
 }
 function work_cross() {
-	local rng="$1" ; local l="$2" ; local h="$3"
-	local y=1
-	local spaces ; spaces="$(head -c "$l" < /dev/zero | tr '\0' ' ')"
+	local rng="$1" l="$2" h="$3"
+	# shellcheck disable=SC2155
+	local y=1 spaces="$(head -c "$l" < /dev/zero | tr '\0' ' ')"
+	local x p
 	stopwatch start
 	generate "$rng" "$l" "$h" | while read -r p ; do
 		if [ "$y" -le $((h/3)) ] || [ "$y" -gt $(( 2*h/3 )) ] ; then
@@ -276,7 +284,7 @@ function work_cross() {
 	disp d "Time taken: $(stopwatch stop)ms"
 }
 function work_square() {
-	local rng="$1" ; local l="$2" ; local h="$3"
+	local rng="$1" l="$2" h="$3"
 	stopwatch start
 	generate "$rng" "$l" "$h" | while read -r p ; do
 		print_pw "$p" "$l"
@@ -284,9 +292,9 @@ function work_square() {
 	disp d "Time taken: $(stopwatch stop)ms"
 }
 function work_circle() {
-	local rng="$1" ; local l="$2" ; local h="$3"
-	local y ; y="$(bc <<< "$h/2")"
-	local spaces ; spaces="$(head -c "$l" < /dev/zero | tr '\0' ' ')"
+	local rng="$1" l="$2" h="$3"
+	local y="$(bc <<< "$h/2")" spaces="$(head -c "$l" < /dev/zero | tr '\0' ' ')"
+	local x
 	stopwatch start
 	generate "$RNG" "$l" "$h"	| while read -r p ; do
 		printf -v x '%.0f' "$(bc <<< "scale=2;$l*sqrt(1-($y/($h/2))^2)")"
@@ -296,10 +304,10 @@ function work_circle() {
 	disp d "Time taken: $(stopwatch stop)ms"
 }
 function work_triangle() {
-	local rng="$1" ; local l="$2" ; local h="$3"
-	local x=1 ; local n=1
+	local rng="$1" l="$2" h="$3"
+	local x=1 n=1
 	# Generate a string full of spaces
-	local spaces ; spaces="$(head -c "$l" < /dev/zero | tr '\0' ' ')"
+	local spaces="$(head -c "$l" < /dev/zero | tr '\0' ' ')"
 	stopwatch start
 	generate "$rng" "$l" "$h" | while read -r p ; do
 		x=$((n*l/h))
@@ -334,8 +342,8 @@ function usage() {
 
 /\ O Generate shaped random passwords + □
 
-$0 [ -e <rng engine> ] [ -a <shape> | -i <image file> ] [ -l ] [ -d | -v | -q ] [ -s | -n | -x ] [ -<how many you want> ] [ <password length> | -k ]
-$0 [ -e <rng engine> ] [ -a <shape> | -i <image file> ] [ -l ] [ -d | -v | -q ] [ -s | -n | -x ] -f
+$0 [ -e <rng engine> ] [ -a <shape> | -i <image file> ] [ -l ] [ -d | -v | -q ] [ -s | -n | -x ] [ -o <option,option,...> ] [ -<how many you want> ] [ <password length> | -k ]
+$0 [ -e <rng engine> ] [ -a <shape> | -i <image file> ] [ -l ] [ -d | -v | -q ] [ -s | -n | -x ] [ -o <option,option,...> ] -f
 $0 -h
 
 -a  : shape to shape output in. square, triangle, circle, cross or random. Default is square
@@ -346,6 +354,9 @@ $0 -h
 -k  : quick. Compute password length so that entropy is just above ${PW_HW_ENTROPY}b
 -l  : line prefix. Prepend each line with password entropy and length (if not -i), and color password according to the entropy: $(color_me red red) < ${PW_LW_ENTROPY}b < $(color_me orange orange) < ${PW_MLW_ENTROPY}b < $(color_me yellow yellow) < ${PW_MHW_ENTROPY}b < $(color_me grellow "green/yellow") < ${PW_HW_ENTROPY}b < $(color_me green green)
 -n  : numbers. Generate password that contains only char 0 to 9
+-o  : options. Coma separated option list. Specific to switch.
+         -i :
+              invert : negate image
 -q  : quiet. Show only errors log level and hide password entropy and length
 -s  : secure. Generated passwords will include special chars
 -v  : verbose. Show info, warning and error log level
@@ -383,7 +394,7 @@ for i in "$@" ; do
 		N_PASS=${i#-}
 	fi
 done
-while getopts ":a:de:fhi:klm:nqsvx" opt ; do
+while getopts ":a:de:fhi:klm:no:qsvx" opt ; do
 	case ${opt} in
 		a)	SHAPE="${OPTARG}";;
 		d)	LOG_LEVEL='3';;
@@ -395,6 +406,7 @@ while getopts ":a:de:fhi:klm:nqsvx" opt ; do
 		#l)	[ -z "${IMAGE:-}" ] && SHOW_LINE_PREFIX='y';;
 		l)	SHOW_LINE_PREFIX='y';;
 		n)	STRENGTH='NUM';;
+		o)	read -r -a OPTIONS<<<"${OPTARG//,/ }";;
 		q)	LOG_LEVEL='0'; SHOW_LINE_PREFIX='';;
 		s)	STRENGTH='GRAPH';;
 		v)	LOG_LEVEL='2';;
@@ -403,6 +415,7 @@ while getopts ":a:de:fhi:klm:nqsvx" opt ; do
 		*)	echo '??' ; exit "${E_CODES[options]}" ;;
 	esac
 done
+disp d "Options: ${OPTIONS[*]}"
 shift $((OPTIND-1))
 LENGTH=${1:-}
 if ! preflight_check ; then
