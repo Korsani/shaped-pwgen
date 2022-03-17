@@ -116,6 +116,11 @@ You can specify length, number, and more (or less) secure passwords:
 	$ spwgen -k     # compute password size so that it's short BUT secure enough
 	$ spwgen -xk    # password will secure and hexa only
 
+Specify ```-c``` if you want to be sure that password contains at lease one char of each class:
+
+	$ spwgen -kc
+	$ spwgen -xc 4
+
 Password is considered weak if entropy is < 40 bits, and strong if entropy > 60 bits. This may (will) vary...
 
 ### Stats
