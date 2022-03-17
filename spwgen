@@ -429,7 +429,7 @@ Examples:
 	$ spwgen -kn
 
 # Display a colored numbered fish
-	$ spweng -lni img/fish.png
+	$ spwgen -lni img/fish.png
 
 EOF
 }
