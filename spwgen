@@ -392,7 +392,7 @@ $0 -h
 		-x : ${BPOOL[HEX]}
 		-n : ${BPOOL[NUM]}
 		-s : ${BPOOL[GRAPH]}
-      This will slow down password generation
+      This will slow down password generation, and this is probably useless with -n
 -d  : debug. Show debug, info, warning and error log level
 -e  : rng engine: haveged(8), openssl(1) or (/dev/)random. Default is $(color_me white "$RNG"). Speed: openssl >= random >> haveged
 -f  : full screen height: compute as many password as your terminal's lines, and calculate length so that shape is respected
