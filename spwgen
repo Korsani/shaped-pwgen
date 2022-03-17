@@ -11,12 +11,15 @@ LOG_LEVEL="1"
 CACHE_DIR="$HOME/.cache/shaped-pwgen"
 # char classes
 # on MacOS, [:graph:] classes returns dumbs stuff
-declare -A POOL_SIZE POOL E_CODES COLORS LOG_LEVELS SHORT_LOG_LEVELS
+declare -A POOL_SIZE POOL BPOOL E_CODES COLORS LOG_LEVELS SHORT_LOG_LEVELS
 declare -a OPTIONS
-POOL[ALNUM]='a-zA-Z0-9'
-POOL[NUM]='0-9'
-POOL[HEX]='0-9a-f'
-POOL[GRAPH]='a-zA-Z0-9\41\42\43\44\45\46\47\50\51\52\53\54\55\56\57\72\73\74\75\76\77\100\133\134\135\136\137\140\173\174\175\176'
+BPOOL[ALNUM]='a-z','A-Z','0-9'
+BPOOL[NUM]='0-9'
+BPOOL[HEX]='0-9','a-f'
+BPOOL[GRAPH]='a-z','A-Z','0-9','\41\42\43\44\45\46\47\50\51\52\53\54\55\56\57\72\73\74\75\76\77\100\133\134\135\136\137\140\173\174\175\176'
+for k in ${!BPOOL[*]} ; do
+	POOL[$k]="$(echo ${BPOOL[$k]} | tr -d ',')"
+done
 STRENGTH='ALNUM'
 RNG='openssl'
 PW_LW_ENTROPY=40		# Below this entropy it's REALLY weak
@@ -42,6 +45,7 @@ COLORS[orange]="\e[38;2;255;127;0m"
 COLORS[yellow]="\e[38;2;255;255;0m"
 COLORS[grellow]="\e[38;2;178;255;0m"
 COLORS[green]="\e[38;2;0;255;0m"
+COLORS[white]="\e[1;37m"
 COLORS[reset]="\e[0m"
 COLORS[void]=''
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -52,6 +56,19 @@ function disp() {
 	fi
 	local pref="$(date "+%Y-%m-%d %H:%M:%S")"
 	printf '[%s][%s] %s\n' "$pref" "${SHORT_LOG_LEVELS[$level]}" "$msg" >&2
+}
+# Check wether password contain at least one char of each class
+# pw_check <pw> <pool>
+function pw_check() {
+	local pw="$1" pool="$2"
+	local ec=0
+	local class
+	for class in $(tr ',' ' ' <<<"${BPOOL[$pool]}") ; do
+		if ! grep -qE "[$class]" <<<"$pw" ; then
+			ec=1
+		fi
+	done
+	return $ec
 }
 function preflight_check() {
 	local pool
@@ -122,8 +139,19 @@ function stopwatch {
 # generate <rng engine> <width> <height>
 function generate() {
 	local rng="$1" l="$2" h="$3"
+	local i pw
 	disp i "Calling RNG: $rng $l $h"
-	( eval generate_"$rng" "$l" "$h" | $tr -cd "${POOL[$STRENGTH]}" | fold -w "${l}" ) | head -"${h}"
+	if [ -z "$CHECK" ] ; then
+		( eval generate_"$rng" "$l" "$h" | $tr -cd "${POOL[$STRENGTH]}" | fold -w "${l}" ) | head -"${h}"
+	else
+		for i in $($seq 1 $h) ; do
+			pw=$(eval generate_"$rng" "$l" "1" | $tr -cd "${POOL[$STRENGTH]}" | fold -w "${l}" | head -1)
+			while ! pw_check "$pw" "$STRENGTH" ; do
+				pw=$(eval generate_"$rng" "$l" "1" | $tr -cd "${POOL[$STRENGTH]}" | fold -w "${l}" | head -1)
+			done
+			echo "$pw"
+		done
+	fi
 }
 function generate_random() {
 	cat /dev/random
@@ -351,16 +379,25 @@ function usage() {
 
 /\ O Generate shaped random passwords + □
 
-$0 [ -e <rng engine> ] [ -a <shape> | -i <image file> ] [ -l ] [ -d | -v | -q ] [ -s | -n | -x ] [ -o <option,option,...> ] [ -<how many you want> ] [ <password length> | -k ]
-$0 [ -e <rng engine> ] [ -a <shape> | -i <image file> ] [ -l ] [ -d | -v | -q ] [ -s | -n | -x ] [ -o <option,option,...> ] -f
+Password length is max length of the generated passwords. Number of passwords vary accordingly to the shape. Default is $(color_me white "$DEFAULT_LENGTH")
+
+Unless -x, -n or -s, password will contain $(color_me white ${BPOOL[ALNUM]})
+
+$0 [ -e <rng engine> ] [ -a <shape> | -i <image file> ] [ -l ] [ -d | -v | -q ] [ -c ] [ -s | -n | -x ] [ -o <option,option,...> ] [ -<how many you want> ] [ <password length> | -k ]
+$0 [ -e <rng engine> ] [ -a <shape> | -i <image file> ] [ -l ] [ -d | -v | -q ] [ -c ] [ -s | -n | -x ] [ -o <option,option,...> ] -f
 $0 -h
 
--a  : shape to shape output in. square, triangle, circle, cross or random. Default is square
+-a  : shape to shape output in. square, triangle, circle, cross or random. Default is $(color_me white "square")
+-c  : check. Ensure generated password will contain at least one char of each class:
+		-x : ${BPOOL[HEX]}
+		-n : ${BPOOL[NUM]}
+		-s : ${BPOOL[GRAPH]}
+      This will slow down password generation
 -d  : debug. Show debug, info, warning and error log level
--e  : rng engine: haveged(8), openssl(1) or (/dev/)random. Default is $RNG. Speed: openssl >= random >> haveged
+-e  : rng engine: haveged(8), openssl(1) or (/dev/)random. Default is $(color_me white "$RNG"). Speed: openssl >= random >> haveged
 -f  : full screen height: compute as many password as your terminal's lines, and calculate length so that shape is respected
 -i  : image file you want the password to be shaped in
--k  : quick. Compute password length so that entropy is just above ${PW_HW_ENTROPY}b
+-k  : quick. Compute password length so that entropy is just above $(color_me white "${PW_HW_ENTROPY}b")
 -l  : line prefix. Prepend each line with password entropy and length (if not -i), and color password according to the entropy: $(color_me red red) < ${PW_LW_ENTROPY}b < $(color_me orange orange) < ${PW_MLW_ENTROPY}b < $(color_me yellow yellow) < ${PW_MHW_ENTROPY}b < $(color_me grellow "green/yellow") < ${PW_HW_ENTROPY}b < $(color_me green green)
 -n  : numbers. Generate password that contains only char 0 to 9
 -o  : options. Coma separated option list. Specific to switch.
@@ -369,8 +406,7 @@ $0 -h
 -q  : quiet. Show only errors log level and hide password entropy and length
 -s  : secure. Generated passwords will include special chars
 -v  : verbose. Show info, warning and error log level
--x  : hexa. Generate passwords that will contain char a to f and 0-9
-password length: (max) length of the generated passwords. Number of passwords vary accordingly to the shape. Default is $DEFAULT_LENGTH
+-x  : hexa. Generate passwords that will contain char 'a' to 'f' and '0' to '9'
 
 Examples:
 
@@ -397,15 +433,16 @@ Examples:
 
 EOF
 }
-N_PASS='' ; FULL_HEIGHT='' ; IMAGE='' ; SHAPE='' ; SHOW_LINE_PREFIX='' ; QUICK=''
+N_PASS='' ; FULL_HEIGHT='' ; IMAGE='' ; SHAPE='' ; SHOW_LINE_PREFIX='' ; QUICK='' ; CHECK=''
 for i in "$@" ; do
 	if [[ $i =~ ^-[0-9]+$ ]] ; then
 		N_PASS=${i#-}
 	fi
 done
-while getopts ":a:de:fhi:klm:no:qsvx" opt ; do
+while getopts ":a:cde:fhi:klm:no:qsvx" opt ; do
 	case ${opt} in
 		a)	SHAPE="${OPTARG}";;
+		c)	CHECK='y';;
 		d)	LOG_LEVEL='3';;
 		e)	RNG="${OPTARG}";;
 		f)	FULL_HEIGHT='y';;
