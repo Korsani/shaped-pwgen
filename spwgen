@@ -23,7 +23,7 @@ done
 STRENGTH='ALNUM'
 RNG='openssl'
 PW_LW_ENTROPY=40		# Below this entropy it's REALLY weak
-PW_HW_ENTROPY=60		# Above this entropy it's fairly strong
+PW_HW_ENTROPY=70		# Above this entropy it's fairly strong
 # Some intermediates
 PW_MHW_ENTROPY=$(( PW_LW_ENTROPY+2*(PW_HW_ENTROPY-PW_LW_ENTROPY)/3 ))
 PW_MLW_ENTROPY=$(( PW_LW_ENTROPY+  (PW_HW_ENTROPY-PW_LW_ENTROPY)/3 ))
